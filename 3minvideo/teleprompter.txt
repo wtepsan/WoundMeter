@@ -7,7 +7,7 @@ Anyone confined to bed, after a stroke, surgery or a long illness, can develop p
 
 --- SCENE 2 · WHAT IT IS, AND WHAT'S NEW (0:20–0:40) ---
 
-WoundMeter is my entry for Build for Your World: it brings Meta's models into elderly care, the field my research comes from. It's not an AI doctor and it gives no advice to patients. It turns a phone photo into a calibrated measurement and documentation that a nurse or physician verifies. Everything in this video was built during the hackathon, except two parts I'll flag: my earlier YOLO wound model and the basic ruler measurement. I adapted some code from that prototype, but most of it is new, written this week with AI coding assistance.
+WoundMeter is my entry for Build for Your World: it brings Meta's models into elderly care, the field my research comes from. It's not an AI doctor and it gives no advice to patients. It turns a phone photo into a calibrated measurement and documentation that a nurse or physician verifies. Everything in this video was built during the hackathon, except two parts I'll flag: my earlier YOLO wound model and the ruler with its measurement. I adapted some code from that prototype, but most of it is new, written this week with AI coding assistance.
 
 --- SCENE 3 · SAM 3.1 OUTLINE AND CORRECTION (0:40–1:15) ---
 
@@ -27,7 +27,7 @@ Approved visits build the wound's history: here the verified area falls from eig
 
 --- SCENE 7 · CONTRIBUTIONS (2:30–2:50) ---
 
-To recap: before the hackathon I had the YOLO model and the basic ruler. Everything else, the Meta SAM 3.1, Muse Spark and Muse Voice integrations, the boundary editor, clinician sign-off, the no-visible-wound workflow and the care platform, I built in these ten days, mostly as new code written with AI coding assistance. The repository is public and lists it in detail.
+To recap: before the hackathon I had the YOLO model and the ruler with its measurement. Everything else, the Meta SAM 3.1, Muse Spark and Muse Voice integrations, the boundary editor, clinician sign-off, the no-visible-wound workflow and the care platform, I built in these ten days, mostly as new code written with AI coding assistance. The repository is public and lists it in detail.
 
 --- SCENE 8 · CLOSE (2:50–3:00) ---
 

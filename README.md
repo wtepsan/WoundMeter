@@ -41,7 +41,7 @@ Photo capture → calibrated measurement → Meta AI assistance → human correc
 ```
 
 1. **Capture.** A caregiver or nurse photographs the wound beside a printed L-ruler with four AprilTag markers and adds a short factual report (pain, drainage, dressing, redness).
-2. **Calibrate** *(pre-existing, extended)*. The server corrects camera tilt and maps the wound onto a fixed 10 px/mm grid, so every photo is measured on the same scale. New in the hackathon: rulers from 6 to 30 cm, partial-frame coverage and colour calibration.
+2. **Calibrate** *(pre-existing)*. The server corrects camera tilt and maps the wound onto a fixed 10 px/mm grid using the AprilTag ruler, so every photo is measured on the same scale. Colour calibration from the photo was added in the hackathon.
 3. **Assist.** Meta SAM 3.1 outlines the wound, guided by the local YOLOv8 model *(pre-existing model; the guidance is new)*; Muse Spark 1.3 drafts observations and documentation.
 4. **Correct.** A clinician checks the outline or redraws it, re-measured live. Every edit is a new version; AI proposals are never overwritten.
 5. **Approve.** Only a qualified clinician can sign, after four explicit confirmations.
@@ -107,8 +107,8 @@ WoundMeter is built on the ideas of WoundWise, a prototype from earlier joint re
 
 | | What it is |
 | :--- | :--- |
-| **OLD** (before 26 Oct 2026) | The WoundWise prototype and its ideas: the custom-trained YOLOv8 wound segmentation model (`best.pt`, Aug 2025); prototype ruler measurement (photo straightening and measurement with a basic 12 cm three-tag L-ruler, `ruler_template_v1.yaml`, Aug 2026); the ruler illustration in the photo guide (`instruction_1ruler.png`, Aug 2026). Some of its code was adapted into this build. |
-| **NEW** (26 Oct–4 Nov 2026) | **All Meta integration:** SAM 3.1 YOLO-guided segmentation and mask decoder; Muse Spark 1.3 explanations, visual observations, Ask AI, reports and tool-calling record assistant with safety filters; Muse Voice dictation. **Plus:** dynamic 6–30 cm rulers and partial-frame coverage; 8-patch colour calibration (ΔE₀₀); interactive boundary editor with live re-measurement; four-confirmation clinician sign-off; no-visible-wound (0 cm²) and healed-wound workflow; multi-role platform for physicians, nurses, caregivers, patients and administrators; encrypted identifiers and hash-chained audit log; `/demo`, `/instruction` and deployment |
+| **OLD** (before 26 Oct 2026) | The WoundWise prototype and its ideas: the custom-trained YOLOv8 wound segmentation model (`best.pt`, Aug 2025); **the AprilTag L-ruler and all ruler measurement** (marker detection, photo straightening onto the ruler's scale, ruler sizes; `ruler_template_v1.yaml`, Aug 2026); the ruler illustration in the photo guide (`instruction_1ruler.png`, Aug 2026). Some of its code was adapted into this build. |
+| **NEW** (26 Oct–4 Nov 2026) | **All Meta integration:** SAM 3.1 YOLO-guided segmentation and mask decoder; Muse Spark 1.3 explanations, visual observations, Ask AI, reports and tool-calling record assistant with safety filters; Muse Voice dictation. **Plus:** 8-patch colour calibration (ΔE₀₀); interactive boundary editor with live re-measurement; four-confirmation clinician sign-off; no-visible-wound (0 cm²) and healed-wound workflow; multi-role platform for physicians, nurses, caregivers, patients and administrators; encrypted identifiers and hash-chained audit log; `/demo`, `/instruction` and deployment |
 
 The repository was initialised on 4 November 2026, so the split rests on file dates, checksums and legacy `woundwise` identifiers: see [docs/TECHNICAL_DETAILS.md](docs/TECHNICAL_DETAILS.md#6-what-we-built-during-the-hackathon).
 
@@ -128,7 +128,7 @@ Three Docker Compose services; only the web server is exposed. Meta never receiv
 
 ## Evidence it works
 
-- **Calibration (synthetic).** On a rendered 18 cm ruler (a size added in the hackathon) and an ellipse of known area, measured area was within +0.58% to +0.92% at 0°, 15° and 30° tilt. This mainly tests the ruler measurement, which builds on the pre-existing prototype.
+- **Ruler measurement (pre-existing, synthetic test).** On a rendered ruler and an ellipse of known area, measured area was within +0.58% to +0.92% at 0°, 15° and 30° tilt. This tests the pre-existing ruler measurement that the hackathon features build on; it is not claimed as hackathon work.
 - **Workflow.** An end-to-end API run passed 29/29 checks: measurement, sign-off rules, 0 cm², healing and reopening, caregiver permissions.
 - **Live Meta traces.** SAM 3.1 inference at 4.5–5.4 s per photo alongside YOLOv8 (~0.2 s), with disagreement warnings, and automatic fallback to YOLOv8 when the Meta API timed out.
 - **Meta failure cases fixed.** On real photos, YOLO-guided SAM outlined the open wound instead of pen-mark dashes (0.49 → ~14 cm²), the open area of a healing wound instead of the whole pink zone (16.1 → 2.6 cm²), and reported a healed scar as no visible wound instead of 30 cm².

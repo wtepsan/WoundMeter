@@ -4,7 +4,7 @@ Target: **2:50–3:00**. About 430 spoken words (~2:52 at 150 words per minute);
 
 The rules say judges must be able to tell what was built during the hackathon (26 Oct–4 Nov), or the project is disqualified. So this script:
 
-- **says what is new in the first 40 seconds**, and names the only two pre-existing parts (the YOLO wound model and the basic ruler measurement);
+- **says what is new in the first 40 seconds**, and names the only two pre-existing parts (the YOLO wound model and the ruler with its measurement);
 - **labels every scene** with an on-screen tag: **NEW · built 26 Oct–4 Nov** or **PRE-EXISTING**;
 - **frames WoundMeter as a measurement and documentation workflow for care teams**, not AI medical advice and not a simple image analyser: AI never advises patients, and a clinician verifies everything;
 - **states the theme** (Build for Your World) and **shows the image licence**.
@@ -47,7 +47,7 @@ The rules say judges must be able to tell what was built during the hackathon (2
 
 > WoundMeter is my entry for **Build for Your World**: it brings Meta's models into elderly care, the field my research comes from. It's not an AI doctor and it gives no advice to patients. It turns a phone photo into a calibrated measurement and documentation that a nurse or physician verifies.
 >
-> Everything in this video was built during the hackathon, except two parts I'll flag: my earlier YOLO wound model and the basic ruler measurement. I adapted some code from that prototype, but most of it is new, written this week with AI coding assistance.
+> Everything in this video was built during the hackathon, except two parts I'll flag: my earlier YOLO wound model and the ruler with its measurement. I adapted some code from that prototype, but most of it is new, written this week with AI coding assistance.
 
 *Action: scroll to the **Built during the hackathon** OLD/NEW table and hold for 2 seconds.*
 
@@ -97,7 +97,7 @@ The rules say judges must be able to tell what was built during the hackathon (2
 
 *Tag: **Public repo: github.com/wtepsan/WoundMeter***
 
-> To recap: before the hackathon I had the YOLO model and the basic ruler. Everything else, the Meta SAM 3.1, Muse Spark and Muse Voice integrations, the boundary editor, clinician sign-off, the no-visible-wound workflow and the care platform, I built in these ten days, mostly as new code written with AI coding assistance. The repository is public and lists it in detail.
+> To recap: before the hackathon I had the YOLO model and the ruler with its measurement. Everything else, the Meta SAM 3.1, Muse Spark and Muse Voice integrations, the boundary editor, clinician sign-off, the no-visible-wound workflow and the care platform, I built in these ten days, mostly as new code written with AI coding assistance. The repository is public and lists it in detail.
 
 *Action: show the OLD/NEW table again, then the repo file list.*
 
@@ -137,7 +137,7 @@ The rules say judges must be able to tell what was built during the hackathon (2
 
 Anyone confined to bed, after a stroke, surgery or a long illness, can develop pressure wounds within days. Most of them are older adults, and ageing societies like Japan, Thailand and England will have more every year. They're cared for at home by family without clinical training, and nurses can't see every wound every day.
 
-WoundMeter is my entry for Build for Your World: it brings Meta's models into elderly care, the field my research comes from. It's not an AI doctor and it gives no advice to patients. It turns a phone photo into a calibrated measurement and documentation that a nurse or physician verifies. Everything in this video was built during the hackathon, except two parts I'll flag: my earlier YOLO wound model and the basic ruler measurement. I adapted some code from that prototype, but most of it is new, written this week with AI coding assistance.
+WoundMeter is my entry for Build for Your World: it brings Meta's models into elderly care, the field my research comes from. It's not an AI doctor and it gives no advice to patients. It turns a phone photo into a calibrated measurement and documentation that a nurse or physician verifies. Everything in this video was built during the hackathon, except two parts I'll flag: my earlier YOLO wound model and the ruler with its measurement. I adapted some code from that prototype, but most of it is new, written this week with AI coding assistance.
 
 Here's a sample photo with the printed ruler. Straightening the photo onto the ruler's scale comes from my earlier prototype. What's new is Meta SAM 3.1. It outlines the whole wound bed, including slough. I built the SAM integration, a decoder for its mask format, and a step where my older YOLO model only points SAM to the right place, so it ignores pen marks and scars. The numbers are computed by code, never by a language model. If the outline is wrong, the clinician drags it, and the area re-measures live.
 
@@ -147,6 +147,6 @@ Eight weeks later the wound has closed. Instead of failing, WoundMeter reports n
 
 Approved visits build the wound's history: here the verified area falls from eighteen square centimetres to under one. The record assistant uses Muse Spark with tool calling to answer questions from approved data, and nurses can dictate with Muse Voice. The family sees only what a clinician has approved.
 
-To recap: before the hackathon I had the YOLO model and the basic ruler. Everything else, the Meta SAM 3.1, Muse Spark and Muse Voice integrations, the boundary editor, clinician sign-off, the no-visible-wound workflow and the care platform, I built in these ten days, mostly as new code written with AI coding assistance. The repository is public and lists it in detail.
+To recap: before the hackathon I had the YOLO model and the ruler with its measurement. Everything else, the Meta SAM 3.1, Muse Spark and Muse Voice integrations, the boundary editor, clinician sign-off, the no-visible-wound workflow and the care platform, I built in these ten days, mostly as new code written with AI coding assistance. The repository is public and lists it in detail.
 
 WoundMeter: AI assists, families care, professionals decide. Try it at woundmeter dot wtepsan dot dev.
