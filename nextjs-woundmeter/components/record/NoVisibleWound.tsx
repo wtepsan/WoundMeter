@@ -24,12 +24,15 @@ export function takeOutlineRequest(observationId: string): boolean {
  * The AI found no wound on a calibrated photo. The person can record 0 cm² (a proposal a clinician must verify),
  * a clinician can draw the outline of a wound the AI missed, or the photo can be retaken. Nothing is approved here.
  */
-export function NoVisibleWound({ obs, canRecord, canDraw, onDone, onRetake }: {
+export function NoVisibleWound({ obs, canRecord, canDraw, onDone, onRetake, perform, note }: {
   obs: ObservationRecord;
   canRecord: boolean;
   canDraw: boolean;
   onDone: (updated: ObservationRecord, intent: "record_zero" | "draw_outline") => void | Promise<void>;
   onRetake?: () => void;
+  /** Replaces the server call (the stateless /demo keeps the record in the browser only). */
+  perform?: (intent: "record_zero" | "draw_outline") => Promise<ObservationRecord>;
+  note?: string;
 }) {
   const [busy, setBusy] = useState<null | "record_zero" | "draw_outline">(null);
   const [error, setError] = useState<string | null>(null);
@@ -37,7 +40,7 @@ export function NoVisibleWound({ obs, canRecord, canDraw, onDone, onRetake }: {
     setBusy(intent);
     setError(null);
     try {
-      await onDone(await recordZeroArea(obs.observation_id, { intent }), intent);
+      await onDone(await (perform ? perform(intent) : recordZeroArea(obs.observation_id, { intent })), intent);
     } catch (err) {
       setError(err instanceof CareApiError || err instanceof Error ? err.message : "That didn’t work. Try again.");
     } finally {
@@ -48,6 +51,7 @@ export function NoVisibleWound({ obs, canRecord, canDraw, onDone, onRetake }: {
     <Notice tone="warning" title={NO_VISIBLE_WOUND_TITLE}>
       <p>{NO_VISIBLE_WOUND_TEXT}</p>
       {canDraw && <p className="fine-print">If a wound is visible in the photo, draw its outline instead.</p>}
+      {note && <p className="fine-print">{note}</p>}
       {error && <p className="danger-text" role="alert">{error}</p>}
       <div className="button-row">
         {canRecord && (

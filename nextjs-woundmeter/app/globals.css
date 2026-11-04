@@ -2815,8 +2815,6 @@ body.photo-expanded-open .record-col-photo { z-index: 90; }
 h3.care-summary-kicker { margin: 4px 0 0; }
 .region-note { margin: 0; padding: 10px 12px; color: var(--ink-2); background: var(--surface-2); border-radius: 10px; }
 
-/* Demo mode banner (components/demo/DemoBanner.tsx). */
-.demo-banner { position: sticky; top: env(safe-area-inset-top, 0px); z-index: 1000; padding: 8px 16px; background: #b45309; color: #fff; text-align: center; font-size: 14px; line-height: 1.35; }
 
 /* /demo measurement page (components/demo/DemoMeasure.tsx). */
 .demo-result-head { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }

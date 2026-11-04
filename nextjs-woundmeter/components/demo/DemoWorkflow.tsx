@@ -84,6 +84,7 @@ export function DemoWorkflow() {
   const obsRef = useRef<ObservationRecord | null>(null);
   obsRef.current = obs;
   const [captureKey, setCaptureKey] = useState(0);
+  const [startEditing, setStartEditing] = useState(false);
   const [drafting, setDrafting] = useState(false);
   const [diagnosis, setDiagnosis] = useState<{ diagnostics: Diagnostics; photo: string } | null>(null);
 
@@ -172,10 +173,10 @@ export function DemoWorkflow() {
         <Notice tone="info">Muse Spark is writing the draft note (about 15 s). You can review the photo and boundary meanwhile.</Notice>
       )}
       {obs ? (
-        <DemoRecord key={obs.observation_id} obs={obs} onChange={setObs} onStartOver={startOver} />
+        <DemoRecord key={obs.observation_id} obs={obs} onChange={setObs} onStartOver={startOver} startEditing={startEditing} />
       ) : (
         <NewMeasurementPanel key={captureKey} liveCamera samplePhotos patientId="DEMO-PATIENT" wound={DEMO_WOUND} role={DEMO_ACCOUNT.role}
-          onSubmitted={(record) => { setObs(record); window.scrollTo({ top: 0 }); }}
+          onSubmitted={(record, options) => { setStartEditing(Boolean(options?.drawOutline)); setObs(record); window.scrollTo({ top: 0 }); }}
           onCancel={startOver} />
       )}
       {!obs && diagnosis && <CalibrationDiagnostics diagnostics={diagnosis.diagnostics} photo={diagnosis.photo} />}
@@ -184,10 +185,12 @@ export function DemoWorkflow() {
 }
 
 /** The record screen (ObservationReview) for the in-memory demo record. */
-function DemoRecord({ obs, onChange, onStartOver }: {
+function DemoRecord({ obs, onChange, onStartOver, startEditing = false }: {
   obs: ObservationRecord;
   onChange: (o: ObservationRecord) => void;
   onStartOver: () => void;
+  /** "Draw outline" on a photo without a detected wound opens boundary editing straight away. */
+  startEditing?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
   const [signed, setSigned] = useState(false);
@@ -196,7 +199,7 @@ function DemoRecord({ obs, onChange, onStartOver }: {
   const [region, setRegion] = useState<MeasurementRegion | null>(null);
   const [preview, setPreview] = useState<PreviewState>({ state: "idle" });
   const [boundaryEpoch, setBoundaryEpoch] = useState(0);
-  const [boundaryEditing, setBoundaryEditing] = useState(false);
+  const [boundaryEditing, setBoundaryEditing] = useState(startEditing);
   const [chosen, setChosen] = useState<{ id: number; points: Point[]; region: MeasurementRegion | null } | null>(null);
 
   const editable = obs.review_state === "AWAITING_CLINICAL_REVIEW";

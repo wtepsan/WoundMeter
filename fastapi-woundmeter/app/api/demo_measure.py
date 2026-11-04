@@ -44,7 +44,9 @@ from app.services.clinical_ai_service import (
     COLOUR_RULES, OBSERVATION_SCHEMA, OBSERVATION_SYSTEM_PROMPT, REVISION_SCHEMA, REVISION_SYSTEM_PROMPT,
     REVISION_TYPE_RULES, ClinicalAIService, guard_visual_findings, revision_flags,
 )
-from app.services.connected_care_db import BOUNDARY_KIND_REGION, MEASUREMENT_REGIONS, measurement_lines
+from app.services.connected_care_db import (
+    BOUNDARY_KIND_REGION, MEASUREMENT_REGIONS, ZERO_AREA_AI, ZERO_AREA_CLINICIAN, measurement_lines, zero_area_contract,
+)
 from app.services.apriltag_detector import EXPECTED_IDS, detect_all_markers, detect_ruler_markers
 from app.services.errors import ProcessingFailure
 from app.services.image_decoder import decode_image
@@ -270,6 +272,18 @@ def _record(session, image_bytes: bytes, explanation) -> Dict[str, Any]:
             "boundary_px_json": json.dumps(active_seg.canonical_boundary_px), "geometry": contract,
             "created_by_subject": DEMO_SUBJECT, "created_at_utc": now,
         })
+    elif session.error_code == "no_wound_detected" and session.canonical_image and session.geometry.canonical_width_px:
+        # As the real capture: the AI's "no visible open wound" proposal (0 cm², no boundary) with the calibration,
+        # so the demo can continue to record 0 cm² or draw an outline. The record stays a retake until then.
+        contract = zero_area_contract(care_service._calibration_contract(session, colour.status), basis=ZERO_AREA_AI, version=1)
+        versions.append({
+            "measurement_id": "DEMO-MEAS-1", "version_number": 1, "measurement_stage": "PROVISIONAL_AI",
+            "source_model": ZERO_AREA_AI, "was_human_corrected": 0, "source_measurement_id": None,
+            "area_cm2": 0.0, "length_cm": 0.0, "width_cm": 0.0, "clinical_length_cm": 0.0, "clinical_width_cm": 0.0,
+            "perimeter_cm": 0.0, "length_method": "maximum_vertical_chord", "width_method": "maximum_horizontal_chord",
+            "pixels_per_mm": session.ruler.pixels_per_mm, "boundary_px_json": "[]", "geometry": contract,
+            "created_by_subject": DEMO_SUBJECT, "created_at_utc": now,
+        })
     measured = bool(versions) and gate.status != "RETAKE_REQUIRED"
     working = versions[-1] if versions else None
     return {
@@ -432,6 +446,9 @@ def demo_refine(body: RefineRequest):
         gate = corrected_gate(contract.get("quality_gate", {}), new_mask, inner_bounds, body.image_quality_status)
     except ValueError as exc:
         return _json({"code": "VALIDATION_ERROR", "message": str(exc)}, 422)
+    zero_source = contract.get("model_source") in (ZERO_AREA_AI, ZERO_AREA_CLINICIAN)
+    # A drawn boundary replaces a "no visible open wound" version; it is a normal outline from now on.
+    contract = {k: v for k, v in contract.items() if k not in ("zero_area", "zero_area_basis")}
     contract = {**contract, "mask_sha256": mask_hash(new_mask), "measurement_version": body.next_version,
                 "selected_component_id": body.selected_candidate_id, "selection_required": False, "quality_gate": gate,
                 "measurement_region": region, "measurement_lines": measurement_lines(m)}
@@ -439,7 +456,8 @@ def demo_refine(body: RefineRequest):
         "measurement": {
             "measurement_id": f"DEMO-MEAS-{body.next_version}", "source_measurement_id": body.base_measurement_id,
             "version_number": body.next_version, "measurement_stage": "HUMAN_CORRECTED",
-            "source_model": f"{contract.get('model_source')}+human_corrected", "was_human_corrected": 1,
+            "source_model": "clinician_drawn_outline" if zero_source else f"{contract.get('model_source')}+human_corrected",
+            "was_human_corrected": 1,
             "area_cm2": round(m.area_cm2, 4), "length_cm": round(m.length_cm, 4), "width_cm": round(m.width_cm, 4),
             "clinical_length_cm": round(m.clinical_length_cm, 4), "clinical_width_cm": round(m.clinical_width_cm, 4),
             "perimeter_cm": round(m.perimeter_cm, 4), "length_method": "maximum_vertical_chord",

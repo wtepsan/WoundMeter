@@ -13,12 +13,12 @@ import { useImagePreview } from "@/hooks/useImagePreview";
 import { useUnsavedGuard } from "@/hooks/useUnsavedGuard";
 import { DEMO_SAMPLE_DATA, can, type Account } from "@/lib/accounts";
 import { CareApiError, fileToBase64, submitObservation, type ObservationSubmission } from "@/lib/care-api";
-import { NO_VISIBLE_WOUND_TITLE, noVisibleWound, retakeReason, woundSiteLabel } from "@/lib/care-format";
+import { NO_VISIBLE_WOUND_TITLE, isZeroArea, noVisibleWound, retakeReason, woundSiteLabel } from "@/lib/care-format";
 import type { ObservationRecord, WoundDetail } from "@/lib/care-types";
 import { validateImage } from "@/lib/image-validation";
 
 const DEMO_NO_WOUND = "No open wound was identified in this photo. The wound may have healed, or no wound may be present. "
-  + "This demo saves nothing, so 0 cm² is recorded only in the full app: sign in with a demo account and use New measure on the demo patient's wound.";
+  + "Its calibration is unavailable, so it cannot be continued here. Retake the photo.";
 
 /** Clinician capture: upload a calibrated photo; the AI proposal then goes to review. */
 export function NewMeasurementPanel({
@@ -55,6 +55,7 @@ export function NewMeasurementPanel({
   const [noWound, setNoWound] = useState<ObservationRecord | null>(null);
   const canDraw = Boolean(account && account.role !== "FAMILY_CAREGIVER" && account.role !== "PATIENT" && can(account, "ASSESS"));
   const retake = () => { setNoWound(null); setError(null); setFile(null); };
+  const demoRecord = Boolean(noWound?.observation_id.startsWith("DEMO-"));
   const previewUrl = useImagePreview(file);
   // A chosen photo that has not been measured yet would be lost by leaving. Once it is measured, the host
   // refreshes the record and then opens it, so the guard must stay off after busy ends.
@@ -86,8 +87,9 @@ export function NewMeasurementPanel({
         return;
       }
       if (obs.observation_id.startsWith("DEMO-") && obs.image_quality_status === "no_wound_detected") {
-        // The stateless demo saves nothing, so 0 cm² can be recorded only in the full app.
-        setError(DEMO_NO_WOUND);
+        // The stateless demo continues in the browser when the photo kept its calibration (a 0 cm² proposal).
+        if (isZeroArea(obs.record_working_measurement)) setNoWound(obs);
+        else setError(DEMO_NO_WOUND);
         return;
       }
       if (obs.review_state === "RETAKE_REQUESTED") {
@@ -124,7 +126,10 @@ export function NewMeasurementPanel({
         </Notice>
       )}
       {noWound && (
-        <NoVisibleWound obs={noWound} canRecord canDraw={canDraw} onRetake={retake}
+        <NoVisibleWound obs={noWound} canRecord canDraw={canDraw || demoRecord} onRetake={retake}
+          // The demo saves nothing: the record continues in this browser only, for review, editing and the demo sign-off.
+          perform={demoRecord ? async () => ({ ...noWound, review_state: "AWAITING_CLINICAL_REVIEW", quality_gate_status: "REVIEW_REQUIRED" }) : undefined}
+          note={demoRecord ? "Demo: nothing is saved. Both choices open the record in this browser, where you can edit and sign it." : undefined}
           onDone={(updated, intent) => { setSubmitted(true); setNoWound(null); onSubmitted(updated, { drawOutline: intent === "draw_outline" }); }} />
       )}
 

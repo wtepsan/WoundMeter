@@ -1,6 +1,5 @@
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
-import { DemoBanner } from "@/components/demo/DemoBanner";
 import { PwaRegistration } from "@/components/pwa/PwaRegistration";
 
 export const viewport: Viewport = {
@@ -34,7 +33,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <PwaRegistration />
-        <DemoBanner />
         {children}
       </body>
     </html>

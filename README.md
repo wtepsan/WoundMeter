@@ -307,7 +307,7 @@ A hackathon judge can evaluate WoundMeter's core value proposition in **under th
 
 ### Minute 1 — Understand the Calibration Contract (`/instruction` $\rightarrow$ `/demo`)
 1. Open **https://woundmeter.wtepsan.dev/instruction** to see the 5-step **Photo Guide** explaining how the L-shaped ruler's four AprilTag 36h11 markers (`0`, `1`, `10`, and the ruler-length ID tag) establish a planar coordinate frame around the wound.
-2. Open **https://woundmeter.wtepsan.dev/demo**. Notice the prominent **"Demo mode — do not enter real patient data"** banner and the zero-sign-in capture panel.
+2. Open **https://woundmeter.wtepsan.dev/demo**. Notice the zero-sign-in capture panel and the **Use this photo** sample photos (nothing is saved).
 
 ### Minute 2 — Run Calibrated AI Segmentation & Interactive Boundary Correction (`/demo`)
 1. **Upload or Capture a Ruler Photo:** Press **Use this photo** on sample **A** or **B** (see [Sample Photos for Testing](#sample-photos-for-testing)), or choose your own wound photograph framed by an approved WoundMeter AprilTag L-ruler (or test the calibration diagnostics gate by uploading any standard photo without AprilTags to see the structured **Retake Required** diagnostic report showing which tag IDs `0, 1, 10` were missing).
