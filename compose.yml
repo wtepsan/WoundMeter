@@ -1,0 +1,71 @@
+name: woundmeter
+services:
+  postgres:
+    image: postgres:16-bookworm
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: woundmeter
+      POSTGRES_USER: woundmeter
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Generate .env on the VM first}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks: [woundmeter]
+    healthcheck:
+      test: [CMD-SHELL, 'pg_isready -U woundmeter -d woundmeter']
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging: &logging
+      driver: json-file
+      options: {max-size: 10m, max-file: '3'}
+  api:
+    build: ./fastapi-woundmeter
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://woundmeter:${POSTGRES_PASSWORD:?}@postgres:5432/woundmeter
+      RESULTS_DIR: /app/data
+      WOUND_MODEL_PATH: /app/models/best.pt
+      SESSION_SECRET: ${SESSION_SECRET:?}
+      PATIENT_DATA_KEY: ${PATIENT_DATA_KEY:?}
+      PATIENT_INDEX_KEY: ${PATIENT_INDEX_KEY:?}
+      BOOTSTRAP_ADMIN_PASSWORD: ${BOOTSTRAP_ADMIN_PASSWORD:?}
+      BOOTSTRAP_ADMIN_TOTP_SECRET: ${BOOTSTRAP_ADMIN_TOTP_SECRET:?}
+      ORGANIZATION_NAME: ${ORGANIZATION_NAME:-WoundMeter}
+      CLINICAL_TIMEZONE: ${CLINICAL_TIMEZONE:-Asia/Bangkok}
+      WOUNDMETER_DEMO_MODE: ${WOUNDMETER_DEMO_MODE:-false}
+      WOUNDMETER_DEMO_KEEP_PHOTOS: ${WOUNDMETER_DEMO_KEEP_PHOTOS:-false}
+      META_AI_ENABLED: ${META_AI_ENABLED:-false}
+      META_API_KEY: ${META_API_KEY:-}
+      OMP_NUM_THREADS: '2'
+    volumes:
+      - uploads:/app/data
+      - ./resources/models:/app/models:ro
+      # /demo photos only (WOUNDMETER_DEMO_KEEP_PHOTOS); never patient data or the uploads volume.
+      - ./demo-data:/app/demo-data
+    depends_on:
+      postgres: {condition: service_healthy}
+    networks: [woundmeter]
+    security_opt: [no-new-privileges:true]
+    logging: *logging
+  web:
+    build:
+      context: ./nextjs-woundmeter
+      # The demo screens are compiled into the build; rebuild web after changing the switch.
+      args:
+        WOUNDMETER_DEMO_MODE: ${WOUNDMETER_DEMO_MODE:-false}
+    restart: unless-stopped
+    environment:
+      FASTAPI_URL: http://api:8000
+      WOUNDMETER_DEMO_MODE: ${WOUNDMETER_DEMO_MODE:-false}
+      NODE_ENV: production
+    ports: ['127.0.0.1:4456:4456']
+    depends_on:
+      api: {condition: service_healthy}
+    networks: [woundmeter]
+    security_opt: [no-new-privileges:true]
+    logging: *logging
+networks:
+  woundmeter: {}
+volumes:
+  postgres_data: {}
+  uploads: {}

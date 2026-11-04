@@ -1,0 +1,85 @@
+# Prototype geometry configured from the user-supplied 120 mm marker-centre
+# spacing and 20 mm AprilTag pattern size. Positions outside those supplied
+# dimensions are aligned to the reference artwork and require physical QA.
+configured: true
+validated: false
+template_id: woundwise_l_ruler_prototype
+version: "0.2.0-expanded-marker-crop"
+coordinate_system:
+  unit: mm
+  x_direction: right
+  y_direction: up
+
+# ID 0 is centred at (0, 0), ID 1 at (0, 120), and ID 10 at (120, 0).
+# Each detected 20 mm coded marker is expanded by a 5 mm quiet zone per side.
+canonical:
+  x_min_mm: -15.0
+  x_max_mm: 135.0
+  y_min_mm: -15.0
+  y_max_mm: 135.0
+  pixels_per_mm: 10.0
+
+markers:
+  0:
+    name: bottom_left
+    pattern_size_mm: 20.0
+    quiet_zone_mm: 5.0
+    printed_rotation_degrees: 0
+    detector_corner_order: [0, 1, 2, 3]
+    corners_mm:
+      corner_0: [10.0, -10.0]
+      corner_1: [-10.0, -10.0]
+      corner_2: [-10.0, 10.0]
+      corner_3: [10.0, 10.0]
+  1:
+    name: top_left
+    pattern_size_mm: 20.0
+    quiet_zone_mm: 5.0
+    printed_rotation_degrees: 0
+    detector_corner_order: [0, 1, 2, 3]
+    corners_mm:
+      corner_0: [10.0, 110.0]
+      corner_1: [-10.0, 110.0]
+      corner_2: [-10.0, 130.0]
+      corner_3: [10.0, 130.0]
+  10:
+    name: bottom_right
+    pattern_size_mm: 20.0
+    quiet_zone_mm: 5.0
+    printed_rotation_degrees: 0
+    detector_corner_order: [0, 1, 2, 3]
+    corners_mm:
+      corner_0: [130.0, -10.0]
+      corner_1: [110.0, -10.0]
+      corner_2: [110.0, 10.0]
+      corner_3: [130.0, 10.0]
+
+crop:
+  bottom_left_mm: [-15.0, -15.0]
+  top_left_mm: [-15.0, 135.0]
+  bottom_right_mm: [135.0, -15.0]
+  top_right_mm: [135.0, 135.0]
+
+# Excludes the L-ruler arms, marker footprints, ticks, and colour patches.
+inner_measurement_region:
+  x_min_mm: 15.0
+  x_max_mm: 135.0
+  y_min_mm: 15.0
+  y_max_mm: 135.0
+
+colour_patches:
+  - name: black
+    rectangle_mm: [-8.0, 88.5, 1.0, 97.5]
+  - name: grey
+    rectangle_mm: [-8.0, 79.0, 1.0, 88.0]
+
+manufacturing:
+  tolerance_mm: 0.5
+
+# Prototype acceptance thresholds. Replace with thresholds derived from a
+# physical validation set before marking this template as validated.
+validation:
+  max_reprojection_error_mm: 1.0
+  source_safety_margin_px: 2.0
+  quiet_zone_min_mean_luma: 160.0
+  quiet_zone_max_dark_fraction: 0.35

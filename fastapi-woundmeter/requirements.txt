@@ -1,0 +1,13 @@
+fastapi==0.162.0
+uvicorn[standard]==0.30.6
+pydantic==2.14.2
+python-multipart==0.0.33
+opencv-contrib-python-headless==4.10.0.84
+numpy==1.26.4
+pillow==13.0.0
+PyYAML==6.0.2
+ultralytics==8.3.40
+httpx==0.27.2
+cryptography==50.0.2
+psycopg[binary]==3.2.13
+starlette==1.10.0

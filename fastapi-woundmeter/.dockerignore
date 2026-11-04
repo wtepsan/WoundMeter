@@ -1,0 +1,13 @@
+**
+!requirements.txt
+!requirements.lock
+!app/
+!app/**
+!config/
+!config/**
+!migrations/
+!migrations/**
+!docker-entrypoint.sh
+**/__pycache__
+**/*.pyc
+**/.env*

@@ -1,0 +1,1 @@
+"""Authoritative image-processing services."""

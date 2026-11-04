@@ -1,0 +1,56 @@
+# Colour reference profile for the eight-patch strip on the WoundMeter L-ruler.
+#
+# Spatial calibration (AprilTags, ruler_template_v1.yaml) is independent of this file and is not
+# changed by it. Patch positions are in the ruler template's millimetre frame (origin at the centre
+# of AprilTag 0, x right, y up).
+#
+# REFERENCE STATUS: UNVERIFIED_REFERENCE. The reference colours below are the digital design values
+# of the ruler artwork, not measurements of a printed ruler. Print, paper, ink, lamination and
+# ageing change the physical colours, so corrections against these values are experimental and
+# must not be described as validated colour calibration. To verify: measure each printed patch with
+# a spectrophotometer or colorimeter under D65 (CIE Lab, 2° observer), convert to sRGB, replace the
+# values, record the instrument, date and print batch in `provenance`, and set
+# reference_status: VERIFIED.
+profile_id: woundmeter_colour_strip
+version: "1.0.0-artwork-design-values"
+ruler_template_id: woundwise_l_ruler_prototype
+# The strip layout was measured on the 18 cm artwork only. Other ruler lengths report NOT_CONFIGURED.
+ruler_lengths_cm: [18]
+colour_space: "sRGB (IEC 61966-2-1), D65 white, 8-bit; fitting in linear sRGB; ΔE00 in CIELAB (D65)"
+reference_status: UNVERIFIED_REFERENCE
+reference_method: >-
+  Digital design values read from the real ruler artwork, resources/rulers/woundmeter_real_ruler_v1.png
+  (same design as resources/18CM.png and resources/A4-18CM.png, identical patch values in all three):
+  each patch's central 50% sampled through the artwork's own AprilTag homography
+  (reprojection error 0.09 mm and 0.20 mm), median per channel.
+provenance: >-
+  Measured 30 Oct 2026 from the ruler artwork files. Patch rectangles: 10 x 10 mm, x -5..5 mm,
+  stacked from y 115 mm (black) down to y 35 mm (cyan). No physical print has been measured.
+# Fraction trimmed from each side of a patch before sampling (0.25 keeps the central 50%), which
+# avoids printed borders, neighbouring patches and resampling at patch edges.
+sampling_inset_fraction: 0.25
+patches:
+  - {name: black,  rectangle_mm: [-5.0, 105.0, 5.0, 115.0], reference_srgb: [0, 0, 0]}
+  - {name: grey,   rectangle_mm: [-5.0,  95.0, 5.0, 105.0], reference_srgb: [128, 128, 128]}
+  - {name: white,  rectangle_mm: [-5.0,  85.0, 5.0,  95.0], reference_srgb: [255, 255, 255]}
+  - {name: red,    rectangle_mm: [-5.0,  75.0, 5.0,  85.0], reference_srgb: [227, 26, 28]}
+  - {name: green,  rectangle_mm: [-5.0,  65.0, 5.0,  75.0], reference_srgb: [32, 181, 43]}
+  - {name: blue,   rectangle_mm: [-5.0,  55.0, 5.0,  65.0], reference_srgb: [47, 85, 199]}
+  - {name: yellow, rectangle_mm: [-5.0,  45.0, 5.0,  55.0], reference_srgb: [229, 207, 58]}
+  - {name: cyan,   rectangle_mm: [-5.0,  35.0, 5.0,  45.0], reference_srgb: [60, 196, 199]}
+# Prototype thresholds, set on synthetic images. Revisit with physical photographs.
+thresholds:
+  min_patch_pixels: 30
+  max_clipped_fraction: 0.20           # share of patch pixels at 0/255 in any channel (black exempt from 0)
+  max_non_uniformity: 12.0             # mean robust SD (1.4826 x MAD), 8-bit units: shadow, glare, obstruction
+  max_gain_ratio: 4.0                  # white-balance gains further apart than this are rejected
+  # Grey/white luminance ratio must be within this factor of the reference ratio (strip presence).
+  neutral_contrast_tolerance: 2.0
+  # Beyond this ΔE00 after white balance a patch is treated as covered or wrong. Legitimate patches
+  # under synthetic casts stayed within 7.4; skin-coloured material over the red patch scored 26.7.
+  max_patch_delta_e00_after_white_balance: 20.0
+  min_valid_patches_for_matrix: 6
+  ridge_alpha: 0.1                     # shrinkage of the 3x3 matrix towards the white-balance gains
+  max_matrix_condition_number: 25.0
+  calibrated_mean_delta_e00: 5.0
+  calibrated_max_delta_e00: 10.0
