@@ -6,19 +6,41 @@ WoundMeter turns a phone photo of a wound into a calibrated measurement that a c
 
 *Meta Global AI Developer Hackathon, 26 October–4 November 2026 · Theme: **Build for Your World** · Solo entry by Worawit Tepsan*
 
-| Try it | Link |
-| :--- | :--- |
-| **Live application** (one-click demo accounts) | https://woundmeter.wtepsan.dev |
-| **Interactive demo** (no sign-in, nothing saved) | https://woundmeter.wtepsan.dev/demo |
-| **Photo guide** (with sample photos) | https://woundmeter.wtepsan.dev/instruction |
-| **Demo video** (3 min) | https://www.youtube.com/watch?v=HSMxFIOesmw |
-| **Phone demo** (installed app) | https://youtube.com/shorts/lW2WnGX9CHQ |
+## Presentation
 
-| 3-minute demo video | Phone demo |
-| :---: | :---: |
-| <a href="https://www.youtube.com/watch?v=HSMxFIOesmw"><img src="https://img.youtube.com/vi/HSMxFIOesmw/hqdefault.jpg" width="360" alt="WoundMeter 3-minute demo video on YouTube"></a> | <a href="https://youtube.com/shorts/lW2WnGX9CHQ"><img src="https://i.ytimg.com/vi/lW2WnGX9CHQ/frame0.jpg" width="150" alt="WoundMeter running on a phone, YouTube Short"></a> |
+<p align="center">
+  <a href="https://www.youtube.com/watch?v=HSMxFIOesmw" title="Watch the 3-minute presentation on YouTube">
+    <img src="docs/media/presentation.jpg" width="720" alt="WoundMeter 3-minute presentation: click to play on YouTube">
+  </a>
+  <br>
+  <sub>▶ <a href="https://www.youtube.com/watch?v=HSMxFIOesmw">Watch the 3-minute presentation on YouTube</a></sub>
+</p>
 
-**Also a phone app (PWA).** WoundMeter is a Progressive Web App, so it installs from the browser with no app store. Tap **Install WoundMeter app** at the bottom of the page in Chrome or Edge; on iPhone, use Safari → **Share** → **Add to Home Screen**. It then opens in its own window and uses the phone camera to take the ruler photo. Patient records and photos are never stored on the phone.
+## Demo on a phone
+
+<table>
+  <tr>
+    <td width="300" align="center">
+      <a href="https://youtube.com/shorts/lW2WnGX9CHQ" title="Watch the phone demo on YouTube">
+        <img src="docs/media/phone-demo.gif" width="260" alt="WoundMeter running as an installed app on a phone">
+      </a>
+      <br>
+      <sub>Shown at 6× speed · ▶ <a href="https://youtube.com/shorts/lW2WnGX9CHQ">full phone demo (YouTube Short)</a></sub>
+    </td>
+    <td>
+      <b>Installs like a phone app (PWA).</b> WoundMeter is a Progressive Web App, so there is no app store. In Chrome or Edge, tap <b>Install WoundMeter app</b> at the bottom of the page. On an iPhone, use Safari → <b>Share</b> → <b>Add to Home Screen</b>.
+      <br><br>
+      The installed app opens in its own window and takes the ruler photo with the phone camera. Patient records and photos are never stored on the phone.
+      <br><br>
+      <b>Try it yourself</b>
+      <ul>
+        <li><a href="https://woundmeter.wtepsan.dev">Live application</a> (one-click demo accounts)</li>
+        <li><a href="https://woundmeter.wtepsan.dev/demo">Interactive demo</a> (no sign-in, nothing saved)</li>
+        <li><a href="https://woundmeter.wtepsan.dev/instruction">Photo guide</a> (with sample photos)</li>
+      </ul>
+    </td>
+  </tr>
+</table>
 
 > **Research prototype, not a medical device.** WoundMeter gives no health advice to patients or families and does not diagnose, stage or treat wounds. Every AI result stays a suggestion until a qualified clinician verifies and signs it.
 

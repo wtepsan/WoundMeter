@@ -44,3 +44,7 @@ playwright-report/
 demo-data/
 3minvideo/
 resources/samples/
+*.mp4
+*.MP4
+*.mov
+*.MOV
