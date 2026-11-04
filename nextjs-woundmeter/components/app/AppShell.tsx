@@ -17,6 +17,7 @@ import { ReviewQueue } from "@/components/clinical/ReviewQueue";
 import { DemoTools } from "@/components/demo/DemoTools";
 import { HomePage } from "@/components/home/HomePage";
 import { ConnectionStatus } from "@/components/pwa/ConnectionStatus";
+import { InstallAppButton } from "@/components/pwa/InstallAppButton";
 import { AdmissionReport } from "@/components/nursing/AdmissionReport";
 import { NursingAssessment } from "@/components/nursing/NursingAssessment";
 import { WardBoard } from "@/components/nursing/WardBoard";
@@ -375,6 +376,7 @@ function ShellContent({ account, portal, onSignOut }: { account: Account; portal
       <footer className="app-footer">
         WoundMeter research prototype. AI assists; qualified clinicians verify and sign off. Not for independent clinical
         decisions.
+        <InstallAppButton />
       </footer>
     </div>
   );

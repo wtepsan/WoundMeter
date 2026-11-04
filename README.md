@@ -12,6 +12,8 @@ WoundMeter turns a phone photo of a wound into a calibrated, clinician-verified 
 | **Interactive demo** (no sign-in, nothing saved) | https://woundmeter.wtepsan.dev/demo |
 | **Photo guide** (with sample photos) | https://woundmeter.wtepsan.dev/instruction |
 
+**Use it like an app on a phone:** WoundMeter is a Progressive Web App. Where your browser supports it, tap **Install WoundMeter app** at the bottom of the page (on iPhone: Safari → **Share** → **Add to Home Screen**). It opens in its own window and uses the camera for capture; patient records and photos are never stored on the device. The demo and photo-guide pages have a header that leads back to the main page.
+
 > **Research prototype.** WoundMeter is not a medical device. It does not diagnose, stage or treat wounds. Every AI result is a suggestion until a qualified clinician verifies and signs it.
 
 ---
@@ -112,7 +114,7 @@ The repository was initialised on 4 November 2026, so the split rests on file da
 
 ```mermaid
 flowchart LR
-    B["Browser / PWA<br/>Next.js 15"] --> W["web<br/>session cookie + CSRF proxy"]
+    B["Browser or installed PWA<br/>Next.js 15"] --> W["web<br/>session cookie + CSRF proxy"]
     W --> A["api · FastAPI<br/>AprilTag · colour · YOLOv8 · measurement"]
     A --> D[("PostgreSQL 16<br/>hash-chained audit")]
     A -->|"rectified wound crop"| S["Meta SAM 3.1"]

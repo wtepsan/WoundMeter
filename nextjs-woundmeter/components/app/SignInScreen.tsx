@@ -7,6 +7,7 @@ import { BookOpen, ChevronRight, FlaskConical, ShieldCheck } from "lucide-react"
 import { BrandMark } from "@/components/app/BrandMark";
 import { SamplePhotos } from "@/components/demo/SamplePhotos";
 import { ConnectionStatus } from "@/components/pwa/ConnectionStatus";
+import { InstallAppButton } from "@/components/pwa/InstallAppButton";
 import { Notice } from "@/components/ui/Feedback";
 import { Disclosure } from "@/components/ui/Layout";
 import type { MfaEnrollment } from "@/hooks/useAppSession";
@@ -263,6 +264,7 @@ export function SignInScreen({
       <p className="footer-note">
         WoundMeter research prototype — not for independent clinical decisions.
       </p>
+      <InstallAppButton />
     </main>
   );
 }

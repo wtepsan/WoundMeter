@@ -1,8 +1,10 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Camera, CheckCircle2, FlaskConical, Frame, Ruler, Upload } from "lucide-react";
+import { Camera, CheckCircle2, FlaskConical, Frame, Ruler, Upload } from "lucide-react";
 
+import { PublicHeader } from "@/components/app/PublicHeader";
 import { SamplePhotos } from "@/components/demo/SamplePhotos";
+import { InstallAppButton } from "@/components/pwa/InstallAppButton";
 import { DEMO_MODE } from "@/lib/accounts";
 
 export const metadata = { title: "Photo guide" };
@@ -40,12 +42,10 @@ const steps = [
 
 export default function InstructionPage() {
   return (
+    <>
+    <PublicHeader current="instruction" />
     <main className="guide" id="main">
       <div className="page page-wide">
-        <Link href="/" className="link-button back-link">
-          <ArrowLeft aria-hidden="true" />
-          Back to WoundMeter
-        </Link>
         <header className="page-header">
           <h1>Photo guide</h1>
           <p>Photograph the whole ruler and never crop the photo. The pictures show placement only; they are not a printable template.</p>
@@ -87,7 +87,9 @@ export default function InstructionPage() {
             </div>
           )}
         </section>
+        <InstallAppButton />
       </div>
     </main>
+    </>
   );
 }
