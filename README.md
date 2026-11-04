@@ -11,6 +11,14 @@ WoundMeter turns a phone photo of a wound into a calibrated measurement that a c
 | **Live application** (one-click demo accounts) | https://woundmeter.wtepsan.dev |
 | **Interactive demo** (no sign-in, nothing saved) | https://woundmeter.wtepsan.dev/demo |
 | **Photo guide** (with sample photos) | https://woundmeter.wtepsan.dev/instruction |
+| **Demo video** (3 min) | https://www.youtube.com/watch?v=HSMxFIOesmw |
+| **Phone demo** (installed app) | https://youtube.com/shorts/lW2WnGX9CHQ |
+
+| 3-minute demo video | Phone demo |
+| :---: | :---: |
+| <a href="https://www.youtube.com/watch?v=HSMxFIOesmw"><img src="https://img.youtube.com/vi/HSMxFIOesmw/hqdefault.jpg" width="360" alt="WoundMeter 3-minute demo video on YouTube"></a> | <a href="https://youtube.com/shorts/lW2WnGX9CHQ"><img src="https://i.ytimg.com/vi/lW2WnGX9CHQ/frame0.jpg" width="150" alt="WoundMeter running on a phone, YouTube Short"></a> |
+
+**Also a phone app (PWA).** WoundMeter is a Progressive Web App, so it installs from the browser with no app store. Tap **Install WoundMeter app** at the bottom of the page in Chrome or Edge; on iPhone, use Safari → **Share** → **Add to Home Screen**. It then opens in its own window and uses the phone camera to take the ruler photo. Patient records and photos are never stored on the phone.
 
 > **Research prototype, not a medical device.** WoundMeter gives no health advice to patients or families and does not diagnose, stage or treat wounds. Every AI result stays a suggestion until a qualified clinician verifies and signs it.
 

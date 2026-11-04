@@ -66,14 +66,14 @@ The repository was created on 4 November 2026, so its commit history cannot show
 | Themes: Build for Your World / Push the Frontier | Confirmed | Build for Your World, stated in the README |
 | Only new work; pre-existing work identified | Supplied | Identified in the README and in §5.1. Risk: no commit history from inside the window |
 | Public repository | Confirmed live | `github.com/wtepsan/WoundMeter` loads signed-out (HTTP 200) |
-| Demo video of 3 minutes or less | Supplied | **Open:** video not yet recorded and linked |
+| Demo video of 3 minutes or less | Supplied | Public on YouTube and linked in the README (https://www.youtube.com/watch?v=HSMxFIOesmw), plus a phone demo of the installed PWA. Check the length is 3:00 or less |
 | No AI medical or health advice; not a simple image analyser | Supplied | README and app state no advice, diagnosis or staging. The full workflow, from capture to signed history, goes beyond a single image analysis |
 | Rights to assets | Supplied | Sample images are CC BY 4.0, credited with the changes made. No `LICENSE` file for the code |
 | No credentials or private data in the repository | Checked | No keys or tokens in tracked files; `.env`, model weights and `demo-data/` are git-ignored. The demo patient is fictional |
 
 ## 6. Open risks
 
-1. **Track and video.** Choose one track, record the video and add its link before the deadline.
+1. **Track.** Choose one track when submitting, and paste the video link into the form.
 2. **Provenance evidence.** The repository history starts on 4 Nov, so judges must rely on the documented evidence.
 3. **Demo uploads kept on the server.** `WOUNDMETER_DEMO_KEEP_PHOTOS=true` saves photos uploaded to `/demo` on the server (not in the repository). If a visitor uploads a real wound photo, it is retained. Recommend turning it off for public judging and clearing the earlier test photos.
 4. **No automated test suite or `LICENSE`** in the repository.
@@ -81,4 +81,4 @@ The repository was created on 4 November 2026, so its commit history cannot show
 
 ## 7. Verdict
 
-**NEEDS ATTENTION.** The software, live demo, Meta model use and provenance documentation are in place. The track choice and the video link (both required) are still missing, and the open risks above should be accepted knowingly.
+**NEEDS ATTENTION.** The software, live demo, Meta model use and provenance documentation are in place. The video is linked. The track still has to be chosen on the submission form, and the open risks above should be accepted knowingly.
