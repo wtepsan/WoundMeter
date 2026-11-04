@@ -4,7 +4,7 @@
 
 WoundMeter turns a phone photo of a wound into a calibrated, clinician-verified measurement, using **Meta SAM 3.1** to outline the wound, **Muse Spark 1.3** to explain and document it, and **Muse Voice** for dictation, so families caring at home and their professionals follow the same wound on the same scale over time.
 
-*Meta Global AI Developer Hackathon (26 October–4 November 2026) · Theme: Build for Your World*
+*Meta Global AI Developer Hackathon (26 October–4 November 2026) · **Theme: Build for Your World**: Meta's models brought into elderly and home care, the field my research comes from, to solve a real problem in it. Solo entry.*
 
 | Try it | Link |
 | :--- | :--- |
@@ -14,7 +14,7 @@ WoundMeter turns a phone photo of a wound into a calibrated, clinician-verified 
 
 **Use it like an app on a phone:** WoundMeter is a Progressive Web App. Where your browser supports it, tap **Install WoundMeter app** at the bottom of the page (on iPhone: Safari → **Share** → **Add to Home Screen**). It opens in its own window and uses the camera for capture; patient records and photos are never stored on the device. The demo and photo-guide pages have a header that leads back to the main page.
 
-> **Research prototype.** WoundMeter is not a medical device. It does not diagnose, stage or treat wounds. Every AI result is a suggestion until a qualified clinician verifies and signs it.
+> **Research prototype.** WoundMeter is not a medical device and gives no health advice to patients or families. It does not diagnose, stage or treat wounds: it measures and documents for care teams, and every AI result is a suggestion until a qualified clinician verifies and signs it.
 
 ---
 
@@ -34,13 +34,15 @@ WoundMeter grew out of our elderly-care research to close that gap: **help famil
 
 ## What it does
 
+Steps marked *(pre-existing)* come from the earlier WoundWise prototype; everything else was built during the hackathon (see [Built during the hackathon](#built-during-the-hackathon)).
+
 ```
 Photo capture → calibrated measurement → Meta AI assistance → human correction → clinician approval → longitudinal tracking
 ```
 
 1. **Capture.** A caregiver or nurse photographs the wound beside a printed L-ruler with four AprilTag markers and adds a short factual report (pain, drainage, dressing, redness).
-2. **Calibrate.** The server corrects camera tilt and maps the wound onto a fixed 10 px/mm grid, so every photo is measured on the same scale.
-3. **Assist.** Meta SAM 3.1 and a local YOLOv8 model outline the wound; Muse Spark 1.3 drafts observations and documentation.
+2. **Calibrate** *(pre-existing, extended)*. The server corrects camera tilt and maps the wound onto a fixed 10 px/mm grid, so every photo is measured on the same scale. New in the hackathon: rulers from 6 to 30 cm, partial-frame coverage and colour calibration.
+3. **Assist.** Meta SAM 3.1 outlines the wound, guided by the local YOLOv8 model *(pre-existing model; the guidance is new)*; Muse Spark 1.3 drafts observations and documentation.
 4. **Correct.** A clinician checks the outline or redraws it, re-measured live. Every edit is a new version; AI proposals are never overwritten.
 5. **Approve.** Only a qualified clinician can sign, after four explicit confirmations.
 6. **Track.** Approved measurements build the progress chart. Families see only verified results.
@@ -101,11 +103,11 @@ No printed ruler is needed. These sample photos already include the WoundMeter r
 
 ## Built during the hackathon
 
-WoundMeter extends WoundWise, a prototype from earlier joint research (see [Acknowledgements](#acknowledgements)). The hackathon build was done by a single developer.
+WoundMeter is built on the ideas of WoundWise, a prototype from earlier joint research (see [Acknowledgements](#acknowledgements)). The hackathon build was done by a single developer: some prototype code was adapted, but most of the code was newly written during the hackathon with AI coding assistance.
 
 | | What it is |
 | :--- | :--- |
-| **OLD** (before 26 Oct 2026) | Custom-trained YOLOv8 wound segmentation model (`best.pt`, Aug 2025); basic 12 cm three-tag L-ruler geometry (`ruler_template_v1.yaml`, Aug 2026) |
+| **OLD** (before 26 Oct 2026) | The WoundWise prototype and its ideas: the custom-trained YOLOv8 wound segmentation model (`best.pt`, Aug 2025); prototype ruler measurement (photo straightening and measurement with a basic 12 cm three-tag L-ruler, `ruler_template_v1.yaml`, Aug 2026); the ruler illustration in the photo guide (`instruction_1ruler.png`, Aug 2026). Some of its code was adapted into this build. |
 | **NEW** (26 Oct–4 Nov 2026) | **All Meta integration:** SAM 3.1 YOLO-guided segmentation and mask decoder; Muse Spark 1.3 explanations, visual observations, Ask AI, reports and tool-calling record assistant with safety filters; Muse Voice dictation. **Plus:** dynamic 6–30 cm rulers and partial-frame coverage; 8-patch colour calibration (ΔE₀₀); interactive boundary editor with live re-measurement; four-confirmation clinician sign-off; no-visible-wound (0 cm²) and healed-wound workflow; multi-role platform for physicians, nurses, caregivers, patients and administrators; encrypted identifiers and hash-chained audit log; `/demo`, `/instruction` and deployment |
 
 The repository was initialised on 4 November 2026, so the split rests on file dates, checksums and legacy `woundwise` identifiers: see [docs/TECHNICAL_DETAILS.md](docs/TECHNICAL_DETAILS.md#6-what-we-built-during-the-hackathon).
@@ -126,7 +128,7 @@ Three Docker Compose services; only the web server is exposed. Meta never receiv
 
 ## Evidence it works
 
-- **Calibration (synthetic).** On a rendered ruler and an ellipse of known area, measured area was within +0.58% to +0.92% at 0°, 15° and 30° tilt.
+- **Calibration (synthetic).** On a rendered 18 cm ruler (a size added in the hackathon) and an ellipse of known area, measured area was within +0.58% to +0.92% at 0°, 15° and 30° tilt. This mainly tests the ruler measurement, which builds on the pre-existing prototype.
 - **Workflow.** An end-to-end API run passed 29/29 checks: measurement, sign-off rules, 0 cm², healing and reopening, caregiver permissions.
 - **Live Meta traces.** SAM 3.1 inference at 4.5–5.4 s per photo alongside YOLOv8 (~0.2 s), with disagreement warnings, and automatic fallback to YOLOv8 when the Meta API timed out.
 - **Meta failure cases fixed.** On real photos, YOLO-guided SAM outlined the open wound instead of pen-mark dashes (0.49 → ~14 cm²), the open area of a healing wound instead of the whole pink zone (16.1 → 2.6 cm²), and reported a healed scar as no visible wound instead of 30 cm².
@@ -167,6 +169,6 @@ Open http://127.0.0.1:4456. Calibration, YOLOv8 and measurement work offline wit
 
 - **Meta**, for hosting the Meta Global AI Developer Hackathon and providing access to SAM 3.1, Muse Spark 1.3 and Muse Voice Transcribe 1.0, which power WoundMeter's wound outlines, documentation and dictation.
 - **Previous work.** The idea behind WoundMeter (connecting family caregivers at home with professional review) comes from earlier joint elderly-care research at the International College of Digital Innovation (ICDI), **Chiang Mai University**, with clinical, nursing and caregiver collaborators. That work also produced the WoundWise prototype: the YOLOv8 wound model and the first ruler design listed as OLD above.
-- **The hackathon build.** Everything listed as NEW was designed and built by Worawit Tepsan during the hackathon.
+- **The hackathon build.** Everything listed as NEW was designed and built by Worawit Tepsan during the hackathon, with AI coding assistance; some code from the earlier prototype was adapted.
 - **Sample images:** adapted from Jia et al. (2026), Figure 3, with the WoundMeter ruler added ([doi.org/10.3389/fmed.2026.1776438](https://doi.org/10.3389/fmed.2026.1776438)), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 - **Open source:** Next.js, React, Tailwind CSS, Lucide, FastAPI, PostgreSQL, OpenCV (AprilTag 36h11), PyTorch and Ultralytics YOLOv8; the Braden Scale for pressure-injury risk.

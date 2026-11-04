@@ -1,127 +1,152 @@
-# WoundMeter · 3-minute demo video
+# WoundMeter · 3-minute demo video (rules-compliant)
 
-Target: **2:55–3:00**. About 400 spoken words (~2:40 at a calm 150 words per minute), leaving ~20 seconds for clicks and pauses.
-Rule of thumb: **show, don't wait.** Anything that takes time (AI measuring, Muse writing) is prepared before you press record.
+Target: **2:50–3:00**. About 430 spoken words (~2:52 at 150 words per minute); if you run long, trim Scene 6 first.
+
+The rules say judges must be able to tell what was built during the hackathon (26 Oct–4 Nov), or the project is disqualified. So this script:
+
+- **says what is new in the first 40 seconds**, and names the only two pre-existing parts (the YOLO wound model and the basic ruler measurement);
+- **labels every scene** with an on-screen tag: **NEW · built 26 Oct–4 Nov** or **PRE-EXISTING**;
+- **frames WoundMeter as a measurement and documentation workflow for care teams**, not AI medical advice and not a simple image analyser: AI never advises patients, and a clinician verifies everything;
+- **states the theme** (Build for Your World) and **shows the image licence**.
 
 ---
 
 ## 1. Prepare (10 minutes, before recording)
 
-**Browser (Chrome, 1920×1080, zoom 100–110%, bookmarks bar hidden). Open these tabs in this order:**
+**Browser:** Chrome, 1920×1080, zoom 100–110%, bookmarks bar hidden, notifications off. Open these tabs:
 
 | Tab | URL | State before recording |
 | :-- | :-- | :-- |
-| 1 | https://github.com/wtepsan/WoundMeter | README at the top |
-| 2 | https://woundmeter.wtepsan.dev/demo | **Sample A already measured** (see below), record open |
-| 3 | https://woundmeter.wtepsan.dev/demo | Fresh page, nothing selected (for sample C) |
-| 4 | https://woundmeter.wtepsan.dev | Signed in as **Physician · Dr. Somchai**, patient **Malee Sukjai (P-DEMO-HEAL)** open on the wound |
-| 5 | Incognito window: https://woundmeter.wtepsan.dev | Signed in as **Home caregiver · Suda**, same patient open |
+| 1 | https://github.com/wtepsan/WoundMeter | README top (shows the repo is **public**) |
+| 2 | https://woundmeter.wtepsan.dev/demo | **Sample A already measured**, record open, Muse Spark draft loaded |
+| 3 | https://woundmeter.wtepsan.dev/demo | Fresh page (for sample C) |
+| 4 | https://woundmeter.wtepsan.dev | Signed in as **Physician · Dr. Somchai**, patient **Malee Sukjai (P-DEMO-HEAL)** open; on the **AI reports** tab, ask the record assistant *"How has this wound changed?"* and leave the answer on screen |
+| 5 | Incognito: https://woundmeter.wtepsan.dev | Signed in as **Home caregiver · Suda**, same patient open |
 
-**Pre-measure sample A in tab 2** (this is the slow part, about 20–40 s):
-1. Press **Use this photo** on sample A, then **Measure this photo**.
-2. Wait until the record opens **and** the Muse Spark draft has appeared under **AI assistance** (about 15 s more).
-3. Scroll back to the top of the record. Do not edit anything yet.
+**Pre-measure sample A in tab 2** (the slow part): **Use this photo** on A → **Measure this photo** → wait for the record **and** the Muse Spark draft under **AI assistance** (~15 s more). Scroll back to the top.
 
-**Also check:**
-- Close notifications (Slack, mail, OS banners). Silence the phone.
-- Do one full dry run with a timer. If a segment runs long, cut words, not clicks.
-- Use the incognito window for Suda so the two sign-ins don't log each other out.
+**On-screen tags:** add them in your editor (or as a small text overlay while recording). Exact wording is given in each scene.
 
-**Recorder:** OBS, Loom or QuickTime, 1080p, microphone close to your mouth. Record **one segment at a time** (the numbered scenes below) and join them; it is much faster than one perfect take.
+**Recorder:** OBS, Loom or QuickTime at 1080p. Record **scene by scene** and join the clips. Do one dry run with a timer.
 
 ---
 
 ## 2. Script
 
-### Scene 1 · Hook (0:00–0:25) · Tab 1 (README top)
+### Scene 1 · The problem (0:00–0:20) · Tab 1
 
-> Anyone confined to bed, after a stroke, surgery or a long illness, can develop pressure wounds within days. Most of them are older adults, and ageing societies like Japan, Thailand and England will have more every year. They're cared for at home by family without clinical training. Nurses can't be at every bedside, and what reaches them is a phone photo taken from a different distance every time, so nobody can tell if the wound is healing.
+*Tag: none*
 
-*Action: slowly scroll from the tagline to the live links.*
+> Anyone confined to bed, after a stroke, surgery or a long illness, can develop pressure wounds within days. Most of them are older adults, and ageing societies like Japan, Thailand and England will have more every year. They're cared for at home by family without clinical training, and nurses can't see every wound every day.
 
-### Scene 2 · The idea (0:25–0:38) · Tab 1
+*Action: README top, scroll slowly to the live links.*
 
-> WoundMeter fixes that. **AI assists, families care, professionals decide.** A family member takes one photo with a printed ruler. Meta AI helps measure and document it. A clinician verifies everything before it counts.
+### Scene 2 · What it is, and what's new (0:20–0:40) · Tab 1
 
-*Action: point the cursor at the flow line "Photo capture → … → longitudinal tracking".*
+*Tag: **NEW · built 26 Oct–4 Nov***
 
-### Scene 3 · Calibrated measurement with SAM 3.1 (0:38–1:15) · Tab 2
-
-> Here's sample photo A in our live demo. The four AprilTag markers on the ruler let us correct camera tilt and map the wound onto a fixed grid of ten pixels per millimetre, so every photo is measured on the same scale.
+> WoundMeter is my entry for **Build for Your World**: it brings Meta's models into elderly care, the field my research comes from. It's not an AI doctor and it gives no advice to patients. It turns a phone photo into a calibrated measurement and documentation that a nurse or physician verifies.
 >
-> Meta SAM 3.1 outlines the wound. Our local YOLO model tells SAM where to look, so it ignores pen marks and scars around the wound. The area, length and width are computed by our own code, never by a language model.
+> Everything in this video was built during the hackathon, except two parts I'll flag: my earlier YOLO wound model and the basic ruler measurement. I adapted some code from that prototype, but most of it is new, written this week with AI coding assistance.
 
-*Action: switch between the **Rectified** and **Original** views; hover the outline and the measurement figures.*
+*Action: scroll to the **Built during the hackathon** OLD/NEW table and hold for 2 seconds.*
 
-> If the outline isn't right, the clinician just drags it. The area re-measures live.
+### Scene 3 · SAM 3.1 outline and correction (0:40–1:15) · Tab 2
 
-*Action: press **Edit boundary**, drag one point outward, watch the area change, press **Done editing**.*
+*Tag (first 5 s): **PRE-EXISTING · ruler measurement*** → *then: **NEW · SAM 3.1 integration & boundary editor***
 
-### Scene 4 · Muse Spark and sign-off (1:15–1:40) · Tab 2
+> Here's a sample photo with the printed ruler. Straightening the photo onto the ruler's scale comes from my earlier prototype.
+>
+> What's new is Meta SAM 3.1. It outlines the whole wound bed, including slough. I built the SAM integration, a decoder for its mask format, and a step where my older YOLO model only points SAM to the right place, so it ignores pen marks and scars. The numbers are computed by code, never by a language model.
 
-> Muse Spark 1.3 drafts the documentation from the measured figures only, and is kept to describing, never diagnosing or staging. The clinician accepts, edits or rejects it, then signs with four explicit confirmations. Nothing is approved by AI.
+*Action: switch **Rectified** / **Original**, hover the outline and the figures.*
 
-*Action: scroll to **AI assistance**, show the draft for 2–3 seconds, then scroll to **Review & sign** and tick the four confirmations. (Don't fill the whole form on camera.)*
+> If the outline is wrong, the clinician drags it, and the area re-measures live.
 
-### Scene 5 · Healed wound (1:40–2:00) · Tab 3
+*Action: **Edit boundary**, drag one point, **Done editing**.*
 
-> What about a wound that has healed? Here's photo C, eight weeks later.
+### Scene 4 · Muse Spark documentation and sign-off (1:15–1:40) · Tab 2
 
-*Action: **Use this photo** on sample C → **Measure this photo**. While it measures (about 10 s), keep talking:*
+*Tag: **NEW · Muse Spark 1.3 & clinician sign-off***
 
-> Most tools would just fail here. WoundMeter recognises there's no open wound and says so.
+> Muse Spark 1.3 drafts the documentation from the measured figures and describes what's visible; it never diagnoses or stages. The clinician accepts, edits or rejects the draft, and signs with four explicit confirmations. AI never approves anything.
 
-*Action: the **No visible wound detected** notice appears; point at **Record 0 cm²**, **Draw outline** and **Retake photo**. Press **Record 0 cm²** to show the 0 cm² record.*
+*Action: show the draft under **AI assistance** for 2–3 s; scroll to **Review & sign** and tick the confirmations.*
 
-> Zero square centimetres is a real result, but only a clinician can confirm it, and only a clinician can mark the wound healed.
+### Scene 5 · No visible wound (1:40–2:00) · Tab 3
+
+*Tag: **NEW · no-visible-wound workflow***
+
+> Eight weeks later the wound has closed. Instead of failing, WoundMeter reports no visible wound. Zero square centimetres is recorded only after a clinician confirms it.
+
+*Action: **Use this photo** on C → **Measure this photo** (cut the wait in editing) → **No visible wound detected** → **Record 0 cm²**.*
 
 ### Scene 6 · Connected care (2:00–2:30) · Tabs 4 and 5
 
-> Every approved visit builds the wound's history. For our fictional patient, the verified area fell from eighteen square centimetres to under one.
+*Tag: **NEW · connected-care platform, Muse Spark assistant & Muse Voice***
 
-*Action (tab 4, Dr. Somchai): show the progress chart and the visit list (18.37 → 0.86 cm², third photo "No visible wound").*
+> Approved visits build the wound's history: here the verified area falls from eighteen square centimetres to under one. The record assistant uses Muse Spark with tool calling to answer questions from approved data, and nurses can dictate with Muse Voice.
 
-> The family sees only what a clinician has approved, with clear care instructions.
+*Action (tab 4): progress chart, then the **AI reports** tab with the assistant's answer and the microphone button.*
 
-*Action (tab 5, Suda): show the same patient from the caregiver's view, with only the approved visits.*
+> The family sees only what a clinician has approved.
 
-### Scene 7 · What I built (2:30–2:50) · Tab 1
+*Action (tab 5): Suda's view with the approved visits only.*
 
-> The idea, a YOLO wound model and a basic ruler came from earlier joint research. In these ten days I built the Meta SAM 3.1 and Muse Spark integration, voice dictation, colour and dynamic ruler calibration, the boundary editor, clinician sign-off, the healed-wound workflow, and the whole connected-care platform.
+### Scene 7 · Contributions (2:30–2:50) · Tab 1
 
-*Action: scroll to **Built during the hackathon** (OLD vs NEW table).*
+*Tag: **Public repo: github.com/wtepsan/WoundMeter***
+
+> To recap: before the hackathon I had the YOLO model and the basic ruler. Everything else, the Meta SAM 3.1, Muse Spark and Muse Voice integrations, the boundary editor, clinician sign-off, the no-visible-wound workflow and the care platform, I built in these ten days, mostly as new code written with AI coding assistance. The repository is public and lists it in detail.
+
+*Action: show the OLD/NEW table again, then the repo file list.*
 
 ### Scene 8 · Close (2:50–3:00) · Tab 1
 
-> WoundMeter: AI assists, families care, professionals decide. Try it yourself at woundmeter dot wtepsan dot dev, with no ruler needed.
+*Tag (small, bottom): **Sample images adapted from Jia et al. (2026), CC BY 4.0***
 
-*Action: scroll back to the live links at the top. Stop recording.*
+> WoundMeter: AI assists, families care, professionals decide. Try it at woundmeter dot wtepsan dot dev.
+
+*Action: scroll back to the live links. Stop recording.*
 
 ---
 
-## 3. Make it fast
+## 3. Rules checklist (before you submit)
 
-- **Record scene by scene,** re-take only the one you stumble in, then join the clips. Total recording time is usually 20–30 minutes.
-- **Never wait on camera.** Sample A is pre-measured. If sample C takes long, cut the wait in editing (or speed it up 2×) and keep the voiceover.
-- **Speak the script, click second.** If you are short of breath, drop the sentence in *Scene 3* about pen marks; it is the least essential.
-- **Do not change real records on camera.** Use `/demo` for anything you sign or record as 0 cm²; it saves nothing. In the signed-in app, only show the patient, don't approve.
-- **Captions help judges:** YouTube or Loom auto-captions are fine; fix "SAM", "Muse Spark" and "wtepsan".
-- **Final check:** total length ≤ 3:00, sound audible at laptop volume, the live URL visible at the start and the end.
+| Rule | How this video and submission meet it |
+| :-- | :-- |
+| **New work only** | Shows only hackathon features; the two pre-existing parts are named and tagged **PRE-EXISTING** in Scene 3 and recapped in Scene 7, and the video says some prototype code was adapted and most code is new, written with AI coding assistance. |
+| **Identify your contributions** | Scene 2 states it up front; every scene has a **NEW** or **PRE-EXISTING** tag; the README has the OLD/NEW table. |
+| **Public repo** | Check https://github.com/wtepsan/WoundMeter opens in a private/incognito window **without signing in**. |
+| **Team / track** | Solo is allowed. Pick **one** track (Indie Developer or Startup) and enter only that one. |
+| **Demo video ≤ 3 minutes** | Trim to 2:50–3:00; upload (YouTube unlisted or Loom) and check the link opens signed-out. |
+| **Banned: AI medical or health advice** | Scenes 2 and 4 say it gives no advice and never diagnoses or stages; every result is verified by a clinician. Don't describe it as telling patients what to do. |
+| **Banned: simple image analyser** | Show the whole workflow: calibration, SAM outline, correction, documentation, sign-off, history and family view, not just "upload a photo, get an answer". |
+| **Rights to assets** | Sample photos are adapted from Jia et al. (2026), CC BY 4.0, credited in the app, README and Scene 8. Don't show other people's photos without permission. |
+| **Theme** | Scene 2 names **Build for Your World** (Meta models in elderly care, a domain you know). |
+| **Submission** | By **Wed 4 Nov, 9:00 PM ET** at https://cerebralvalley.ai/e/meta-ai-developer-hackathon/hackathon/submit, with the public repo, the video link, and every team member added. |
 
-## 4. Spoken text only (for a teleprompter)
+## 4. Make it fast
 
-Anyone confined to bed, after a stroke, surgery or a long illness, can develop pressure wounds within days. Most of them are older adults, and ageing societies like Japan, Thailand and England will have more every year. They're cared for at home by family without clinical training. Nurses can't be at every bedside, and what reaches them is a phone photo taken from a different distance every time, so nobody can tell if the wound is healing.
+- **Record scene by scene,** re-take only what you stumble on. Expect 20–30 minutes in total.
+- **Never wait on camera.** Sample A and the assistant's answer are prepared in advance; cut or speed up the sample C wait.
+- **Don't approve real records on camera.** Sign only in `/demo`, which saves nothing.
+- **If you run long,** shorten Scene 6 first (drop the voice sentence), never the contribution statements in Scenes 2, 3 and 7.
 
-WoundMeter fixes that. AI assists, families care, professionals decide. A family member takes one photo with a printed ruler. Meta AI helps measure and document it. A clinician verifies everything before it counts.
+## 5. Spoken text only (teleprompter)
 
-Here's sample photo A in our live demo. The four AprilTag markers on the ruler let us correct camera tilt and map the wound onto a fixed grid of ten pixels per millimetre, so every photo is measured on the same scale. Meta SAM 3.1 outlines the wound. Our local YOLO model tells SAM where to look, so it ignores pen marks and scars around the wound. The area, length and width are computed by our own code, never by a language model. If the outline isn't right, the clinician just drags it. The area re-measures live.
+Anyone confined to bed, after a stroke, surgery or a long illness, can develop pressure wounds within days. Most of them are older adults, and ageing societies like Japan, Thailand and England will have more every year. They're cared for at home by family without clinical training, and nurses can't see every wound every day.
 
-Muse Spark 1.3 drafts the documentation from the measured figures only, and is kept to describing, never diagnosing or staging. The clinician accepts, edits or rejects it, then signs with four explicit confirmations. Nothing is approved by AI.
+WoundMeter is my entry for Build for Your World: it brings Meta's models into elderly care, the field my research comes from. It's not an AI doctor and it gives no advice to patients. It turns a phone photo into a calibrated measurement and documentation that a nurse or physician verifies. Everything in this video was built during the hackathon, except two parts I'll flag: my earlier YOLO wound model and the basic ruler measurement. I adapted some code from that prototype, but most of it is new, written this week with AI coding assistance.
 
-What about a wound that has healed? Here's photo C, eight weeks later. Most tools would just fail here. WoundMeter recognises there's no open wound and says so. Zero square centimetres is a real result, but only a clinician can confirm it, and only a clinician can mark the wound healed.
+Here's a sample photo with the printed ruler. Straightening the photo onto the ruler's scale comes from my earlier prototype. What's new is Meta SAM 3.1. It outlines the whole wound bed, including slough. I built the SAM integration, a decoder for its mask format, and a step where my older YOLO model only points SAM to the right place, so it ignores pen marks and scars. The numbers are computed by code, never by a language model. If the outline is wrong, the clinician drags it, and the area re-measures live.
 
-Every approved visit builds the wound's history. For our fictional patient, the verified area fell from eighteen square centimetres to under one. The family sees only what a clinician has approved, with clear care instructions.
+Muse Spark 1.3 drafts the documentation from the measured figures and describes what's visible; it never diagnoses or stages. The clinician accepts, edits or rejects the draft, and signs with four explicit confirmations. AI never approves anything.
 
-The idea, a YOLO wound model and a basic ruler came from earlier joint research. In these ten days I built the Meta SAM 3.1 and Muse Spark integration, voice dictation, colour and dynamic ruler calibration, the boundary editor, clinician sign-off, the healed-wound workflow, and the whole connected-care platform.
+Eight weeks later the wound has closed. Instead of failing, WoundMeter reports no visible wound. Zero square centimetres is recorded only after a clinician confirms it.
 
-WoundMeter: AI assists, families care, professionals decide. Try it yourself at woundmeter dot wtepsan dot dev, with no ruler needed.
+Approved visits build the wound's history: here the verified area falls from eighteen square centimetres to under one. The record assistant uses Muse Spark with tool calling to answer questions from approved data, and nurses can dictate with Muse Voice. The family sees only what a clinician has approved.
+
+To recap: before the hackathon I had the YOLO model and the basic ruler. Everything else, the Meta SAM 3.1, Muse Spark and Muse Voice integrations, the boundary editor, clinician sign-off, the no-visible-wound workflow and the care platform, I built in these ten days, mostly as new code written with AI coding assistance. The repository is public and lists it in detail.
+
+WoundMeter: AI assists, families care, professionals decide. Try it at woundmeter dot wtepsan dot dev.
