@@ -12,31 +12,17 @@
 
 ## 1. The Idea — Why WoundMeter Exists
 
-WoundMeter grew out of our previous work in elderly care.
-
-As populations age, more older adults are cared for at home rather than in hospital wards. Day-to-day responsibility falls on family members—sons, daughters, grandchildren, cousins, and informal caregivers—who care deeply for their loved ones but rarely have formal clinical training. When an older adult develops a chronic wound or pressure injury, family caregivers face a stressful daily reality: they change dressings and clean the skin, yet they often do not know which visual changes matter, how to document a wound consistently under changing room light and camera angles, or when a change requires urgent professional attention.
-
-At the same time, community nurses and wound-care clinicians cannot stand at every bedside every day. When families and clinicians do communicate, updates often consist of uncalibrated smartphone photos taken at arbitrary distances and angles, accompanied by subjective descriptions that make longitudinal comparison unreliable.
-
-That gap led us to ask one central question:
+WoundMeter grew out of earlier elderly-care research. Older adults confined to bed are increasingly cared for at home by family members without clinical training, while nurses cannot see every wound every day. The question behind the project:
 
 > **"How can we help family caregivers know what to observe, what to do, and when to seek professional help, while keeping healthcare professionals involved?"**
 
-WoundMeter was built to explore this question. Its purpose is not to replace nurses or physicians with automated judgements, nor to turn family members into clinicians. Instead, WoundMeter connects everyday home caregiving with qualified professional oversight through calibrated photography, explainable AI assistance, and an auditable clinical review workflow:
-
-**AI assists. Families care. Professionals decide.**
-
----
-
 ## 2. The Problem
 
-Caring for chronic wounds across hospital-to-home transitions exposes five interlocking challenges:
+The problem statement is in the [README](../README.md#the-problem). In technical terms, it comes down to these points:
 
-1. **More older adults receive complex care at home:** Pressure injuries, diabetic foot ulcers, and surgical or venous wounds increasingly require weeks or months of monitoring outside the hospital.
-2. **Family caregivers have limited medical training:** Informal caregivers struggle to judge whether a wound is improving or worsening, what symptoms to record (pain, exudate, dressing state, periwound redness), and when to escalate concerns.
-3. **Smartphone photographs are geometrically and colorimetrically inconsistent:** Without a physical reference on the wound plane, a closer camera or a tilted phone makes the same wound appear larger or smaller, while warm indoor bulbs distort tissue appearance.
-4. **Healthcare professionals cannot continuously observe every patient at home:** Clinicians need structured, comparable evidence to prioritise review queues without being overwhelmed by unverified or unusable photographs.
-5. **Communication gaps between families and clinicians:** Caregivers rarely receive clear, versioned feedback on whether their photo was usable or whether care instructions have changed, and clinicians lack an auditable trail separating raw AI suggestions from verified clinical records.
+- Phone photos are geometrically and colorimetrically inconsistent. Without a reference on the wound plane, distance and tilt change the apparent size, and indoor light changes the apparent colour.
+- Clinicians need comparable, structured evidence.
+- Clinicians need an auditable trail that separates AI suggestions from verified records.
 
 ---
 
@@ -80,7 +66,7 @@ Three ruler photos of one wound healing over time. Each already includes the Wou
 | [Download](https://woundmeter.wtepsan.dev/samples/sample-a-open-wound.png) | [Download](https://woundmeter.wtepsan.dev/samples/sample-b-small-wound.png) | [Download](https://woundmeter.wtepsan.dev/samples/sample-c-healed.png) |
 | Large open wound; measured by Meta SAM 3.1 + YOLOv8-seg | Narrow open slit; SAM offers whole-wound and red-tissue outlines | No open wound: WoundMeter reports **No visible wound detected** and offers **Record 0 cm²** |
 
-*Images adapted from Jia et al. (2026), Figure 3, with the WoundMeter ruler added. Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Source: [doi.org/10.3389/fmed.2026.1776438](https://doi.org/10.3389/fmed.2026.1776438). The same credit is shown wherever the app displays them.*
+*Images adapted from Jia Z. et al. (2026), "Case Report: … sacrococcygeal pressure sores", Frontiers in Medicine, Figure 3 ([doi.org/10.3389/fmed.2026.1776438](https://doi.org/10.3389/fmed.2026.1776438)), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). The images were modified: they were cleaned up, and the WoundMeter ruler was added digitally. Because the ruler was not in the original scene, the measured cm² values only show how the workflow behaves; they are not the true wound sizes. The same credit is shown wherever the app displays the images.*
 
 ---
 
@@ -122,7 +108,7 @@ Otherwise, the photograph is refused for retake (`wound_outside_photo` or `canon
 
 **Hackathon Period:** 26 October–4 November 2026 (Meta Global AI Developer Hackathon).
 
-WoundMeter builds upon an earlier research prototype internally codenamed **WoundWise**, which provided a custom-trained local YOLOv8-seg wound segmentation weight (`best.pt`, trained August 2025) and an initial prototype AprilTag L-ruler geometry configuration (`ruler_template_v1.yaml`, August 2026). During the hackathon window, we engineered a complete, multi-role connected-care platform, integrated the **Meta Model API (`sam-3.1`, `muse-spark-1.3`, `muse-voice-transcribe-1.0`)**, built guided two-pass SAM segmentation and deterministic safety guardrails, and deployed the full Next.js + FastAPI + PostgreSQL system.
+WoundMeter builds upon an earlier research prototype internally codenamed **WoundWise**, which provided a custom-trained local YOLOv8-seg wound segmentation weight (`best.pt`, trained August 2025, reused as-is) and the AprilTag L-ruler with its geometric correction and physical measurement (`ruler_template_v1.yaml`, August 2026; code adapted into this build). During the hackathon window, we engineered a complete, multi-role connected-care platform, integrated the **Meta Model API (`sam-3.1`, `muse-spark-1.3`, `muse-voice-transcribe-1.0`)**, built guided two-pass SAM segmentation and deterministic safety guardrails, and deployed the full Next.js + FastAPI + PostgreSQL system.
 
 > **How it was built:** The hackathon build was done by a single developer from the ideas of the earlier WoundWise prototype. Some prototype code (YOLOv8 inference and the ruler measurement) was adapted; most of the code was newly written during the hackathon with AI coding assistance.
 >
@@ -131,11 +117,11 @@ WoundMeter builds upon an earlier research prototype internally codenamed **Woun
 | Component / Capability | Classification | Evidence in Repository (`mtime` / File / Checksum) | What Existed Before vs. What Was Built in the Hackathon |
 | :--- | :---: | :--- | :--- |
 | **Local YOLOv8-seg Wound Model (`best.pt`)** | **OLD (Pre-Hackathon Foundation)** | `resources/models/best.pt` (`2025-08-19`, $6,012,573\text{ B}$, SHA-256 `bb45e8da...`) | Pre-trained YOLOv8 segmentation weights retained as the local CPU baseline and automatic offline fallback. |
-| **AprilTag L-Ruler & Ruler Measurement (`woundwise_l_ruler_prototype`)** | **OLD (Pre-Hackathon Foundation)** | `fastapi-woundmeter/config/ruler_template_v1.yaml` (`2026-08-01`) & `public/images/instruction_1ruler.png` (`2026-08-03`) | The AprilTag L-ruler and all ruler measurement (marker detection, photo straightening onto the ruler's scale, ruler sizes and coverage) come from the earlier WoundWise prototype; some of its code was adapted into this build. Not claimed as hackathon work. |
+| **AprilTag L-Ruler, Geometric Correction & Physical Measurement (`woundwise_l_ruler_prototype`)** | **OLD (Pre-Hackathon Foundation)** | `fastapi-woundmeter/config/ruler_template_v1.yaml` (`2026-08-01`) & `public/images/instruction_1ruler.png` (`2026-08-03`) | The AprilTag L-ruler and all ruler measurement come from the earlier WoundWise prototype: marker detection, photo straightening onto the ruler's scale, ruler sizes and coverage, and the area/perimeter/axis maths. Some of this code was adapted into the build. None of it is claimed as hackathon work. |
 | **Meta SAM 3.1 Guided Segmentation & Custom Raster Codec** | **NEW (Hackathon)** | `app/services/meta_client.py`, `sam_codec.py`, `sam_guidance.py` (`2026-11-04`) | Built two-pass guided SAM 3.1 segmentation (YOLO-seeded expanded bounding box + distance-transform interior point prompt, with the concept pass adding only regions YOLO missed), one outline per wound with at most one red-tissue alternative, custom Base85 + range-coder/Paeth lossless & 1-bit raster decoder, hole filling, speck removal, and YOLO-vs-SAM Dice/IoU comparison (`model_comparison.py`). |
 | **Meta Muse Spark 1.3 & Muse Voice Transcribe 1.0 Suite** | **NEW (Hackathon)** | `app/services/clinical_ai_service.py` ($1,453$ lines), `app/api/clinical_ai.py` (`2026-11-04`) | Built 5 structured Muse Spark 1.3 capabilities (measurement explanation/drafts, multimodal visual observations, inline "Ask AI" draft revision, longitudinal clinical reports, and tool-calling clinical assistant) plus Muse Voice Transcribe 1.0 dictation and regex/colour-gate safety filters. |
 | **8-Patch Colour Calibration Engine ($\Delta E_{00}$)** | **NEW (Hackathon)** | `config/colour_profile_v1.yaml` (`2026-10-30`), `app/services/colour_calibration.py` ($396$ lines) | Sampled 8-patch reference profile on 30 Oct 2026; implemented linear sRGB white-balance diagonal + ridge-regularised $3\times 3$ matrix fitting, CIELAB $\Delta E_{00}$ evaluation, and automatic gating of colour-dependent AI tissue observations when calibration is `UNVERIFIED_REFERENCE` or failed. |
-| **Interactive Boundary Correction & Deterministic Feret Maths** | **NEW (Hackathon)** | `components/record/PhotoWorkspace.tsx` ($826$ lines), `measurement_contract.py`, `wound_measurement.py` (`2026-11-04`) | Built interactive HTML5 canvas polygon editor with vertex dragging, simple-polygon edge-crossing rejection, 350 ms debounced live server preview, clinical maximum Feret major/perpendicular axes, and versioned `HUMAN_CORRECTED` measurement storage. |
+| **Interactive Boundary Correction & Versioning** | **NEW (Hackathon)** | `components/record/PhotoWorkspace.tsx` ($826$ lines), `measurement_contract.py` (`2026-11-04`) | Built interactive HTML5 canvas polygon editor with vertex dragging, simple-polygon edge-crossing rejection, 350 ms debounced live server preview, and versioned `HUMAN_CORRECTED` measurement storage. The physical measurement maths it calls (`wound_measurement.py`: area, perimeter, axes) belongs to the pre-existing ruler measurement and is not claimed as hackathon work. |
 | **Human-in-the-Loop Clinical Workflow, 4 Attestations & Audit Chain** | **NEW (Hackathon)** | `migrations/001_initial.sql` (28 tables), `002_healed_wounds.sql`, `connected_care_db.py` ($4,041$ lines), `approval-attestations.ts` (`2026-10-31`–`2026-11-04`) | Built PostgreSQL 16 schema, PBKDF2-SHA256 + RFC 6238 TOTP MFA auth, AES-256-GCM patient PII encryption, 4 fingerprint-bound approval attestations, inpatient nursing & Braden Scale module (`nursing_service.py`), and SHA-256 hash-chained `audit_events`. |
 | **Responsive Next.js 15 UI, Photo Guide (`/instruction`) & Stateless `/demo`** | **NEW (Hackathon)** | `nextjs-woundmeter/` ($104$ TS/TSX files, $16,434$ lines), `app/demo/page.tsx`, `app/instruction/page.tsx`, `demo_measure.py` (`2026-10-30`–`2026-11-04`) | Built the complete Next.js 15 App Router interface across Clinical, Caregiver, Nursing, Patient, and Admin portals, new capture illustrations (`2026-10-30`), PWA icons (`2026-11-01`), one-click demo personas, the stateless `/demo` workbench, and three credited [sample photos](#sample-photos-for-testing) (`public/samples/`). |
 | **No Visible Wound, 0 cm² & Healed-Wound Workflow** | **NEW (Hackathon)** | `connected_care_db.py` (`record_zero_area`, `set_wound_status`), `migrations/002_healed_wounds.sql`, `components/record/NoVisibleWound.tsx` (`2026-11-04`) | Calibrated photos without a detected wound keep a 0 cm² AI proposal (no boundary) instead of failing; **Record 0 cm²**, **Draw outline** and **Retake photo**; clinician-only 0 cm² sign-off (*Closed* wound bed); **Mark wound healed** and automatic reopening on a later verified open wound; 0 cm² and reopening shown on the progression chart. |
@@ -314,26 +300,15 @@ cd nextjs-woundmeter && npm ci && npx tsc --noEmit && WOUNDMETER_DEMO_MODE=true 
 
 ## 11. Demo Walkthrough (Under 3 Minutes)
 
-A hackathon judge can evaluate WoundMeter's core value proposition in **under three minutes** without creating an account:
+The step-by-step walkthrough is in the [README](../README.md#try-the-demo-3-minutes), so it is not repeated here. In short:
 
-### Minute 1 — Understand the Calibration Contract (`/instruction` $\rightarrow$ `/demo`)
-1. Open **https://woundmeter.wtepsan.dev/instruction** to see the 5-step **Photo Guide** explaining how the L-shaped ruler's four AprilTag 36h11 markers (`0`, `1`, `10`, and the ruler-length ID tag) establish a planar coordinate frame around the wound.
-2. Open **https://woundmeter.wtepsan.dev/demo**. Notice the zero-sign-in capture panel and the **Use this photo** sample photos (nothing is saved).
+1. On `/demo`, measure sample A: you see calibration, the SAM 3.1 outline and the YOLO agreement.
+2. Edit the boundary; the Muse Spark draft is then marked out of date.
+3. Sign with the four confirmations.
+4. Measure sample C to see **No visible wound detected**.
+5. Open the shared fictional patient **Malee Sukjai (`P-DEMO-HEAL`)** as the physician and as the caregiver.
 
-### Minute 2 — Run Calibrated AI Segmentation & Interactive Boundary Correction (`/demo`)
-1. **Upload or Capture a Ruler Photo:** Press **Use this photo** on sample **A** or **B** (see [Sample Photos for Testing](#sample-photos-for-testing)), or choose your own wound photograph framed by an approved WoundMeter AprilTag L-ruler (or test the calibration diagnostics gate by uploading any standard photo without AprilTags to see the structured **Retake Required** diagnostic report showing which tag IDs `0, 1, 10` were missing).
-2. **Inspect the Calibrated Workspace:** When a valid ruler photo is measured, the record screen opens with:
-   - **Rectified ($10\text{ px/mm}$), Colour-Corrected, and Original image tabs**.
-   - **Deterministic dimensions:** Area ($\text{cm}^2$), perimeter ($\text{cm}$), ruler-axis length/width, and clinical Feret major/perpendicular axes.
-   - **AI Candidate Outlines:** Compare **Meta SAM 3.1** (`sam-3.1`) and local **YOLOv8-seg** outlines and their Dice/IoU agreement.
-3. **Human-in-the-Loop Boundary Edit:** Click **Edit boundary**, drag polygon vertices on the canvas (watching the **live server re-measurement** update in ~350 ms), choose what the outline represents (*Whole wound* or *Red tissue only*), and click **Done editing**. Notice that the provenance badge changes from orange (**AI-proposed boundary**) to teal (**Adjusted boundary**) and any previous AI draft note is automatically marked **out of date (`stale`)**.
-
-4. **Healed Wound:** Use sample **C**. WoundMeter reports **No visible wound detected** instead of an error. Signed in with a demo account, **Record 0 cm²** sends it for clinician verification; after a verified 0 cm², the physician can **Mark wound healed**. A later verified open wound reopens it.
-
-### Minute 3 — Review Muse Spark Assistance, Complete 4 Attestations & Explore Connected Care (`/` & `/demo`)
-1. **Muse Spark 1.3 Assistance:** In the **AI assistance** panel, inspect the provisional documentation draft written by `muse-spark-1.3`, or click **Generate AI observations** to request structured multimodal visual findings (with **Accept / Edit / Reject** controls) and test **Ask AI** inline wording revisions.
-2. **Four-Attestation Sign-Off:** Complete the clinical form (including the **Braden Scale** risk calculator), check all **four clinical attestations** (bound to the exact photo hash, measurement version, colour status, and assessment), and click **Approve & sign (demo)**.
-3. **Optional Multi-Role Check (`/`):** Visit **https://woundmeter.wtepsan.dev** and click **Physician · Dr. Somchai (demo)**, **Nurse · Nurse Mali (demo)** or **Home caregiver · Suda (demo)**. Each sees the shared fictional patient **Malee Sukjai (`P-DEMO-HEAL`)**: the physician and nurse see the full record, the caregiver only clinician-approved visits.
+To see the calibration retake report, upload any photo without the ruler.
 
 ---
 
@@ -342,12 +317,13 @@ A hackathon judge can evaluate WoundMeter's core value proposition in **under th
 ### Available Verification Evidence
 
 - **Frontend Type & Build Verification:** All $103$ TypeScript/TSX modules in `nextjs-woundmeter` pass strict `tsc --noEmit` with zero errors and compile cleanly under Next.js 15.5.28 (`npm audit --omit=dev` reports **0 vulnerabilities**).
-- **Backend & Synthetic Geometric Validation:** All $53$ Python modules in `fastapi-woundmeter` compile cleanly. In isolated synthetic calibration tests rendering `APRILTAG_36h11` markers (`0, 1, 10, 18`) and an elliptical phantom of known true area ($9.676\text{ cm}^2$, major axis $4.40\text{ cm}$, minor axis $2.80\text{ cm}$) under perspective warps at $0^\circ$, $15^\circ$, and $30^\circ$ camera tilt:
+- **Backend & Synthetic Geometric Validation** *(tests the pre-existing ruler measurement)*: All $53$ Python modules in `fastapi-woundmeter` compile cleanly. In isolated synthetic calibration tests rendering `APRILTAG_36h11` markers (`0, 1, 10, 18`) and an elliptical phantom of known true area ($9.676\text{ cm}^2$, major axis $4.40\text{ cm}$, minor axis $2.80\text{ cm}$) under perspective warps at $0^\circ$, $15^\circ$, and $30^\circ$ camera tilt:
   - Mean AprilTag corner reprojection error ranged from **$0.084\text{ mm}$ to $0.151\text{ mm}$** (maximum $\le 0.250\text{ mm}$, well below the $1.0\text{ mm}$ threshold).
   - Measured area was **$9.765\text{ cm}^2$ ($+0.92\%$)** at $0^\circ$, **$9.737\text{ cm}^2$ ($+0.63\%$)** at $15^\circ$, and **$9.732\text{ cm}^2$ ($+0.58\%$)** at $30^\circ$.
 - **Deterministic Contract Verification:** Automated checks across [`wound_measurement.py`](../fastapi-woundmeter/app/services/wound_measurement.py), [`measurement_contract.py`](../fastapi-woundmeter/app/services/measurement_contract.py), and [`sam_guidance.py`](../fastapi-woundmeter/app/services/sam_guidance.py) verified exact pixel-to-$\text{cm}^2$ scaling, rejection of self-crossing/bow-tie polygons, rejection of out-of-window vertices, rejection of wounds within $1\text{ mm}$ of missing photo edges, and SAM mask hole-filling/speck removal ($16/16$ checks passed).
 - **No-Visible-Wound & Healed-Wound Workflow Checks:** An end-to-end API test run against the deployed image passed $29/29$ checks: normal wound measured and approved; healed photo reported as no visible wound and shown on the chart only after clinician verification; 0 cm² sign-off refused unless the wound bed is *Closed* (and *Closed* refused for a measured wound); mark-healed refused while the latest verified area is above zero; reopening with no percentage change from zero; drawn outline on a no-wound photo; 0 cm² recorded over an AI outline with earlier versions kept; stale-version conflict; hidden-ruler and blurred photos never offered 0 cm²; caregiver may record 0 cm² but cannot draw outlines or approve; older no-wound photos converted by recomputing and matching the stored calibration.
 - **Segmentation Checks on Real Photographs:** On the sample and test photographs, YOLO-seeded refinement outlined the open wound instead of skin-marker dashes (previously $0.49\text{ cm}^2$ of dashes vs. a $\approx 14\text{ cm}^2$ wound), reduced a healing wound from $16.1\text{ cm}^2$ (whole pink zone) to $2.6\text{ cm}^2$ (open area; YOLO $2.9\text{ cm}^2$), and reported a healed scar as no visible wound instead of $30\text{ cm}^2$. These are a handful of photographs, not a validation study.
+- **Test Scripts Not Committed:** The checks above were run during development with scripts that are not part of the repository; there is no committed automated test suite or CI workflow yet.
 - **Live Production Trace Evidence:** Kept demo execution logs on the deployment host (`demo-data/images/2026-11-04/`) confirm end-to-end execution of: (a) calibration rejection with marker diagnostics on non-ruler photos, (b) live **Meta SAM 3.1 (`sam-3.1`)** + **YOLOv8-seg (`best.pt`)** dual inference (`sam_live_inference`, SAM latency $4.52\text{ s}–5.41\text{ s}$, YOLO CPU latency $226\text{ ms}–230\text{ ms}$) with automatic disagreement warnings, and (c) resilient automatic fallback to local YOLOv8 (`yolo_local_fallback`) when the external Meta API timed out.
 
 ### Clinical and Technical Limitations
@@ -378,9 +354,10 @@ The following items represent **planned future work** and are explicitly separat
 
 ## 14. Acknowledgements
 
-- **Chiang Mai University (CMU):** We gratefully acknowledge the **International College of Digital Innovation (ICDI), Chiang Mai University**, for research infrastructure support and the interdisciplinary elderly-care research environment that inspired WoundMeter.
-- **Clinical, Nursing, and Caregiver Research Collaborators:** We thank the nursing and clinical wound-care specialists whose practical insights into hospital-to-home transitions, family caregiver challenges, and bedside documentation shaped the human-in-the-loop design of WoundMeter.
-- **Academic Collaboration Context (Edinburgh Napier University):** We acknowledge the broader academic research discussions and elderly-care collaboration context involving **Edinburgh Napier University** that helped motivate our focus on connected home care. *(Note: No source code, clinical data, or official institutional endorsement from Edinburgh Napier University is claimed in this repository.)*
-- **Meta & the Meta Global AI Developer Hackathon Organisers:** We thank **Meta** and the hackathon organising team for hosting the Meta Global AI Developer Hackathon (26 October–4 November 2026) and providing API access to **Meta SAM 3.1 (`sam-3.1`)**, **Meta Muse Spark 1.3 (`muse-spark-1.3`)**, and **Muse Voice Transcribe 1.0 (`muse-voice-transcribe-1.0`)**.
-- **Sample Images:** The three sample photos are adapted from Jia et al. (2026), Figure 3 ([doi.org/10.3389/fmed.2026.1776438](https://doi.org/10.3389/fmed.2026.1776438)), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
-- **Open-Source Community & Clinical Standards:** Built with [Next.js](https://nextjs.org/), [React](https://react.dev/), [Tailwind CSS](https://tailwindcss.com/), [Lucide Icons](https://lucide.dev/), [FastAPI](https://fastapi.tiangolo.com/), [PostgreSQL](https://www.postgresql.org/), [OpenCV](https://opencv.org/) (`APRILTAG_36h11`), [PyTorch](https://pytorch.org/), and [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics), incorporating the clinical **Braden Scale** framework for predicting pressure sore risk.
+The acknowledgements, including the sample-image licence, are in the [README](../README.md#acknowledgements). In short:
+
+- Meta and Cerebral Valley organised the hackathon and enabled model access.
+- Chiang Mai University (International College of Digital Innovation) and the ISPF Research Fellows provided the research context.
+- Earlier clinical and nursing collaborators shaped the idea; they did not take part in the hackathon build.
+- Worawit Tepsan built everything marked NEW, solo, with AI coding assistance.
+- No institutional endorsement is claimed.
