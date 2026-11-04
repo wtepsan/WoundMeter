@@ -25,7 +25,7 @@ The rules say judges must be able to tell what was built during the hackathon (2
 
 **Pre-measure sample A in tab 2** (the slow part): **Use this photo** on A → **Measure this photo** → wait for the record **and** the Muse Spark draft under **AI assistance** (~15 s more). Scroll back to the top.
 
-**On-screen tags:** add them in your editor (or as a small text overlay while recording). Exact wording is given in each scene.
+**On-screen tags:** ready-made PNGs are in [`overlays/`](overlays); [`README.md`](README.md) lists which file goes with each scene. Put them on a track above the video in your editor.
 
 **Recorder:** OBS, Loom or QuickTime at 1080p. Record **scene by scene** and join the clips. Do one dry run with a timer.
 

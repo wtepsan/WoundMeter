@@ -1,0 +1,160 @@
+1
+00:00:00,300 --> 00:00:05,188
+Anyone confined to bed, after a stroke, surgery or a long illness, can develop
+
+2
+00:00:05,238 --> 00:00:09,774
+pressure wounds within days. Most of them are older adults, and ageing societies
+
+3
+00:00:09,824 --> 00:00:13,301
+like Japan, Thailand and England will have more every year.
+
+4
+00:00:13,351 --> 00:00:17,886
+They're cared for at home by family without clinical training, and nurses can't
+
+5
+00:00:17,936 --> 00:00:19,650
+see every wound every day.
+
+6
+00:00:20,300 --> 00:00:22,088
+WoundMeter is my entry for Build for Your World:
+
+7
+00:00:22,138 --> 00:00:24,743
+it brings Meta's models into elderly care, the field my research comes from.
+
+8
+00:00:24,793 --> 00:00:27,193
+It's not an AI doctor and it gives no advice to patients.
+
+9
+00:00:27,243 --> 00:00:29,848
+It turns a phone photo into a calibrated measurement and documentation that a
+
+10
+00:00:29,898 --> 00:00:32,298
+nurse or physician verifies. Everything in this video was built during the
+
+11
+00:00:32,348 --> 00:00:33,524
+hackathon, except two parts I'll flag:
+
+12
+00:00:33,574 --> 00:00:35,566
+my earlier YOLO wound model and the basic ruler measurement.
+
+13
+00:00:35,616 --> 00:00:38,629
+I adapted some code from that prototype, but most of it is new, written this
+
+14
+00:00:38,679 --> 00:00:39,650
+week with AI coding assistance.
+
+15
+00:00:40,300 --> 00:00:43,241
+Here's a sample photo with the printed ruler.
+
+16
+00:00:43,291 --> 00:00:47,728
+Straightening the photo onto the ruler's scale comes from my earlier prototype.
+
+17
+00:00:47,778 --> 00:00:52,963
+What's new is Meta SAM 3.1. It outlines the whole wound bed, including slough.
+
+18
+00:00:53,013 --> 00:00:58,946
+I built the SAM integration, a decoder for its mask format, and a step where my
+
+19
+00:00:58,996 --> 00:01:04,928
+older YOLO model only points SAM to the right place, so it ignores pen marks and
+
+20
+00:01:04,978 --> 00:01:09,415
+scars. The numbers are computed by code, never by a language model.
+
+21
+00:01:09,465 --> 00:01:14,650
+If the outline is wrong, the clinician drags it, and the area re-measures live.
+
+22
+00:01:15,300 --> 00:01:23,164
+Muse Spark 1.3 drafts the documentation from the measured figures and describes
+
+23
+00:01:23,214 --> 00:01:27,780
+what's visible; it never diagnoses or stages.
+
+24
+00:01:27,830 --> 00:01:36,353
+The clinician accepts, edits or rejects the draft, and signs with four explicit
+
+25
+00:01:36,403 --> 00:01:39,650
+confirmations. AI never approves anything.
+
+26
+00:01:40,300 --> 00:01:45,473
+Eight weeks later the wound has closed.
+
+27
+00:01:45,523 --> 00:01:51,442
+Instead of failing, WoundMeter reports no visible wound.
+
+28
+00:01:51,492 --> 00:01:59,650
+Zero square centimetres is recorded only after a clinician confirms it.
+
+29
+00:02:00,300 --> 00:02:03,850
+Approved visits build the wound's history:
+
+30
+00:02:03,900 --> 00:02:11,050
+here the verified area falls from eighteen square centimetres to under one.
+
+31
+00:02:11,100 --> 00:02:18,850
+The record assistant uses Muse Spark with tool calling to answer questions from
+
+32
+00:02:18,900 --> 00:02:24,250
+approved data, and nurses can dictate with Muse Voice.
+
+33
+00:02:24,300 --> 00:02:29,650
+The family sees only what a clinician has approved.
+
+34
+00:02:30,300 --> 00:02:34,631
+To recap: before the hackathon I had the YOLO model and the basic ruler.
+
+35
+00:02:34,681 --> 00:02:38,698
+Everything else, the Meta SAM 3.1, Muse Spark and Muse Voice integrations, the
+
+36
+00:02:38,748 --> 00:02:41,827
+boundary editor, clinician sign-off, the no-visible-wound workflow and the care
+
+37
+00:02:41,877 --> 00:02:46,521
+platform, I built in these ten days, mostly as new code written with AI coding
+
+38
+00:02:46,571 --> 00:02:49,650
+assistance. The repository is public and lists it in detail.
+
+39
+00:02:50,300 --> 00:02:54,637
+WoundMeter: AI assists, families care, professionals decide.
+
+40
+00:02:54,687 --> 00:02:59,650
+Try it at woundmeter dot wtepsan dot dev.
+
