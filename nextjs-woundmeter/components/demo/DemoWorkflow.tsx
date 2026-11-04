@@ -174,7 +174,7 @@ export function DemoWorkflow() {
       {obs ? (
         <DemoRecord key={obs.observation_id} obs={obs} onChange={setObs} onStartOver={startOver} />
       ) : (
-        <NewMeasurementPanel key={captureKey} liveCamera patientId="DEMO-PATIENT" wound={DEMO_WOUND} role={DEMO_ACCOUNT.role}
+        <NewMeasurementPanel key={captureKey} liveCamera samplePhotos patientId="DEMO-PATIENT" wound={DEMO_WOUND} role={DEMO_ACCOUNT.role}
           onSubmitted={(record) => { setObs(record); window.scrollTo({ top: 0 }); }}
           onCancel={startOver} />
       )}

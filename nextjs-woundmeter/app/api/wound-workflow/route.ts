@@ -16,8 +16,8 @@ const ALLOWED_GET_PATTERN = new RegExp(
 
 const ALLOWED_POST_PATTERN = new RegExp(
   `^(?:care/(?:patients|patients/search|patients/duplicate-check` +
-    `|patients/${ID}/(?:wounds|grants)|grants/${ID}/revoke|patients/${ID}/wounds/${ID}/(?:observations|care-plans|summary-drafts|ai-revise)` +
-    `|observations/${ID}/(?:refine-mask|measure-preview|review|record-draft|ai-observations)|assessments/${ID}/amend|tasks/${ID}/complete` +
+    `|patients/${ID}/(?:wounds|grants)|grants/${ID}/revoke|patients/${ID}/wounds/${ID}/(?:observations|care-plans|summary-drafts|ai-revise|status)` +
+    `|observations/${ID}/(?:refine-mask|measure-preview|review|record-draft|ai-observations|record-zero-area)|assessments/${ID}/amend|tasks/${ID}/complete` +
     // Meta AI assistance (clinical staff only; FastAPI enforces roles, permissions and patient scope).
     `|ai-observations/${ID}/review|patients/${ID}/wounds/${ID}/reports|reports/${ID}/review|patients/${ID}/assistant` +
     `|voice/transcribe)` +

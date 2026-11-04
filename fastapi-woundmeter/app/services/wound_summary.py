@@ -134,8 +134,14 @@ def progress_facts_text(latest: Optional[Dict[str, Any]], previous: Optional[Dic
         return "No clinician-verified measurement is recorded yet."
     region = REGION_TEXT.get(latest["region"], "boundary region not recorded")
     first = f"Latest verified area {latest['area_cm2']:.2f} cm² ({region}) on {_day(latest['date_utc'])}"
+    if latest["area_cm2"] == 0:
+        first = f"No visible open wound (0 cm², clinician-verified) on {_day(latest['date_utc'])}"
     if previous and change:
-        if abs(change["cm2"]) < 0.005:
+        if previous["area_cm2"] == 0 and latest["area_cm2"] > 0:
+            first += f", reopened after a verified 0 cm² on {_day(previous['date_utc'])}."
+        elif latest["area_cm2"] == 0 and previous["area_cm2"] > 0:
+            first += f", down from {previous['area_cm2']:.2f} cm² on {_day(previous['date_utc'])}."
+        elif abs(change["cm2"]) < 0.005:
             first += f", unchanged from {previous['area_cm2']:.2f} cm² on {_day(previous['date_utc'])}."
         else:
             size = "smaller" if change["cm2"] < 0 else "larger"

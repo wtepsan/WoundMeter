@@ -333,6 +333,22 @@ export function refineObservationMask(
   return apiPost<ObservationRecord>(`care/observations/${observationId}/refine-mask`, body);
 }
 
+/**
+ * No visible open wound: proposes 0 cm² for clinician verification (never an approval). On a photo where the
+ * AI found no wound, `draw_outline` instead opens it for review so a clinician can draw the boundary.
+ */
+export function recordZeroArea(
+  observationId: string,
+  body: { intent?: "record_zero" | "draw_outline"; expected_measurement_id?: string; amends_assessment_id?: string } = {},
+) {
+  return apiPost<ObservationRecord>(`care/observations/${observationId}/record-zero-area`, body);
+}
+
+/** Clinician confirmation that a wound has healed (after a verified 0 cm²), or reopening it. */
+export function setWoundStatus(patientId: string, woundId: string, status: "HEALED" | "ACTIVE", reason: string) {
+  return apiPost<Record<string, unknown>>(`care/patients/${patientId}/wounds/${woundId}/status`, { status, reason });
+}
+
 /** Measures an unsaved boundary with the same server algorithm as saving it; stores nothing. */
 export function previewMeasurement(observationId: string, body: { edited_boundary_px: number[][]; expected_measurement_id?: string }) {
   return apiPost<MeasurePreview>(`care/observations/${observationId}/measure-preview`, body);

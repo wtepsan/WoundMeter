@@ -642,7 +642,7 @@ class ClinicalAIService:
                    # The first visit has no previous one, and a visit outlining another or an unrecorded region
                    # red tissue only) is not comparable: no change, rather than a misleading number.
                    "change_from_previous_cm2": round(v["delta_from_previous_cm2"], 2) if _same_region(timeline, i) else None,
-                   "change_from_previous_pct": round(v["delta_from_previous_pct"], 1) if _same_region(timeline, i) else None,
+                   "change_from_previous_pct": round(v["delta_from_previous_pct"], 1) if _same_region(timeline, i) and v["delta_from_previous_pct"] is not None else None,
                    "source_model": v["source_model"], "boundary_edited_by_clinician": v["was_human_corrected"],
                    "measurement_region": v.get("measurement_region")}
                   for i, v in enumerate(timeline)]
@@ -1380,7 +1380,7 @@ class _AssistantTools:
         timeline = wound["approved_timeline"]
         for i, (visit, raw) in enumerate(zip(visits, timeline)):
             visit["change_from_previous_cm2"] = round(raw["delta_from_previous_cm2"], 2) if _same_region(timeline, i) else None
-            visit["change_from_previous_pct"] = round(raw["delta_from_previous_pct"], 1) if _same_region(timeline, i) else None
+            visit["change_from_previous_pct"] = round(raw["delta_from_previous_pct"], 1) if _same_region(timeline, i) and raw["delta_from_previous_pct"] is not None else None
         return {"wound_code": wound.get("wound_code"), "approved_visits": visits,
                 "pending_review_count": len(wound["unreviewed_observations"]), "note": wound["healing_epistemic_notice"]}
 

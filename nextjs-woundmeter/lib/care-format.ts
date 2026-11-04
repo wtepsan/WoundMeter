@@ -146,6 +146,21 @@ export function measurementStageLabel(stage: string): string {
   return humanize(stage);
 }
 
+export const NO_VISIBLE_WOUND_TITLE = "No visible wound detected";
+export const NO_VISIBLE_WOUND_TEXT =
+  "No open wound was identified in this photo. The wound may have healed, or no wound may be present. You can record this as 0 cm² for clinician verification, or retake the photo.";
+
+/** A calibrated photo on which the AI found no wound, not yet resolved (no reviewer's retake request). */
+export function noVisibleWound(obs: Pick<ObservationRecord, "review_state" | "image_quality_status" | "reviewing_clinician_subject" | "observation_id">): boolean {
+  return obs.review_state === "RETAKE_REQUESTED" && obs.image_quality_status === "no_wound_detected"
+    && !obs.reviewing_clinician_subject && !obs.observation_id.startsWith("DEMO-");
+}
+
+/** A "no visible open wound" measurement version: 0 cm², no boundary. */
+export function isZeroArea(m: MeasurementVersion | null | undefined): boolean {
+  return Boolean(m && m.area_cm2 === 0 && m.geometry?.zero_area);
+}
+
 /**
  * Plain-language reason a photo could not be measured, with what to do next.
  * `technical` appends the backend's own message (for clinicians).
@@ -161,7 +176,7 @@ export function retakeReason(
   } else if (/ruler|tag|marker|homography|geometry|crop|calibrat/.test(code)) {
     reason = "Part of the calibration ruler was hidden or outside the photo. Keep all four corner markers of the ruler in view.";
   } else if (code.includes("no_wound")) {
-    reason = "No wound could be found in the photo. Keep the wound in the middle of the frame, next to the ruler.";
+    reason = NO_VISIBLE_WOUND_TEXT;
   } else if (/blur|exposure|glare|image/.test(code)) {
     reason = "The photo was too blurry, dark or bright. Use even light and hold the phone steady.";
   }
@@ -189,7 +204,8 @@ export function describeAreaChange(timeline: ApprovedTimelinePoint[]): string | 
   if (timeline.length < 2) return null;
   const last = timeline[timeline.length - 1];
   const prev = timeline[timeline.length - 2];
-  if (prev.area_cm2 <= 0) return null;
+  if (prev.area_cm2 <= 0) return last.area_cm2 > 0 ? `Reopened: ${last.area_cm2.toFixed(2)} cm² after a verified 0 cm² (no visible open wound).` : null;
+  if (last.area_cm2 === 0) return `No visible open wound (0 cm²), down from ${prev.area_cm2.toFixed(2)} cm² at the previous approved measurement.`;
   const pct = ((last.area_cm2 - prev.area_cm2) / prev.area_cm2) * 100;
   if (Math.abs(pct) < 0.05) return "Measured area unchanged since the previous approved measurement.";
   const direction = pct < 0 ? "decreased" : "increased";

@@ -7,17 +7,17 @@ region: a box around it, widened by a margin, plus a positive point at its most 
 SAM can return the whole object. Measured on the phantoms, negative corner points and box-only
 prompts were less reliable, so neither is used.
 
-When YOLO ran on the same crop, every YOLO component seeds SAM, widened by overlapping concept
-components. "wound" also matches skin-marker dashes drawn around a wound, so a concept component YOLO
-did not find seeds SAM only when it is at least CONCEPT_ONLY_MIN_FRACTION of the largest YOLO
-component. Without YOLO, concept components are the seeds. All coordinates are
-inner-crop pixels, so seeds can never reach the ruler arms or the colour strip, which lie outside
+When YOLO ran on the same crop, every YOLO component seeds SAM at its own extent. On real photos
+"wound" also matches skin-marker dashes, healed scar and new epithelium, so nothing is seeded when
+YOLO ran and found no wound, and concept components only add regions YOLO did not find. Without YOLO,
+concept components are the seeds. Any seed under MIN_SEED_FRACTION of the largest one is dropped
+(dashes, specks). All coordinates are inner-crop pixels, so seeds can never reach the ruler arms or the colour strip, which lie outside
 the inner measurement region.
 """
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Dict, List, Sequence, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import cv2
 import numpy as np
@@ -26,8 +26,8 @@ from .mask_mapping import connected_components
 
 MIN_SEED_AREA_PX = 200  # 2 mm² on the 10 px/mm canonical plane
 MAX_SEED_OBJECTS = 4
-# A concept region with no YOLO support seeds SAM only above this fraction of the largest YOLO region.
-CONCEPT_ONLY_MIN_FRACTION = 0.10
+# Seeds smaller than this fraction of the largest seed are not sent to SAM.
+MIN_SEED_FRACTION = 0.10
 BOX_MARGIN_FRACTION = 0.10
 BOX_MARGIN_MIN_PX = 15
 
@@ -91,37 +91,44 @@ def mask_dice(a: np.ndarray, b: np.ndarray) -> float:
     return 2.0 * int(np.logical_and(a, b).sum()) / total if total else 0.0
 
 
-def guidance_seeds(concept_masks: Sequence[np.ndarray], yolo_masks: Sequence[np.ndarray]) -> List[SamSeed]:
+def guidance_seeds(
+    concept_masks: Sequence[np.ndarray], yolo_masks: Optional[Sequence[np.ndarray]]
+) -> List[SamSeed]:
+    """`yolo_masks` is None when YOLO did not run, and empty when it ran and found no wound."""
     concept = _components(concept_masks)
+    if yolo_masks is None:
+        return _to_seeds([(component, "concept") for component in concept])
     yolo = _components(yolo_masks)
-    seeds: List[Tuple[np.ndarray, str]] = []
-    if yolo:
-        # Every YOLO region seeds SAM, widened by the concept regions overlapping it. A concept region
-        # YOLO did not find seeds SAM only when it is a sizeable fraction of the largest YOLO region:
-        # small single-model detections are skin-marker dashes and specks around the wound.
-        largest_yolo = max(int(np.count_nonzero(c)) for c in yolo)
-        for component in yolo:
-            merged, source = component.copy(), "yolo"
-            for other in concept:
-                if np.any(component & other):
-                    merged |= other
-                    source = "concept+yolo"
-            seeds.append((merged, source))
-        for component in concept:
-            if (not any(np.any(component & other) for other in yolo)
-                    and np.count_nonzero(component) >= CONCEPT_ONLY_MIN_FRACTION * largest_yolo):
-                seeds.append((component, "concept"))
-    else:
-        seeds = [(component, "concept") for component in concept]
-    # Overlapping seeds (two concept fragments sharing a YOLO region) become one object.
+    if not yolo:
+        # Both models must find a wound: "wound" alone also matches healed scar and new pink skin.
+        return []
+    # Every YOLO region seeds SAM at its own extent. The concept region is not merged in: on healing
+    # wounds it spans scar and new epithelium around the open area, and widening the box to it makes
+    # SAM outline that whole zone. Concept regions YOLO did not find are added; the size floor in
+    # _to_seeds then drops the small ones (skin-marker dashes, specks).
+    seeds: List[Tuple[np.ndarray, str]] = [
+        (component, "yolo+concept" if any(np.any(component & other) for other in concept) else "yolo")
+        for component in yolo
+    ]
+    seeds += [(component, "concept") for component in concept
+              if not any(np.any(component & other) for other in yolo)]
+    return _to_seeds(seeds)
+
+
+def _to_seeds(seeds: List[Tuple[np.ndarray, str]]) -> List[SamSeed]:
+    # Overlapping seeds (concept fragments from different masks) become one object.
     merged_seeds: List[Tuple[np.ndarray, str]] = []
     for mask, source in seeds:
         for index, (existing, existing_source) in enumerate(merged_seeds):
             if np.any(existing & mask):
-                merged_seeds[index] = (existing | mask, existing_source if existing_source == source else "concept+yolo")
+                merged_seeds[index] = (existing | mask, existing_source)
                 break
         else:
             merged_seeds.append((mask, source))
+    if not merged_seeds:
+        return []
     merged_seeds.sort(key=lambda item: -int(np.count_nonzero(item[0])))
+    floor = MIN_SEED_FRACTION * int(np.count_nonzero(merged_seeds[0][0]))
+    merged_seeds = [item for item in merged_seeds if np.count_nonzero(item[0]) >= floor]
     return [SamSeed(mask=mask, source=source, box=_expanded_box(mask), point=_interior_point(mask))
             for mask, source in merged_seeds[:MAX_SEED_OBJECTS]]

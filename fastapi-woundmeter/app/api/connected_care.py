@@ -679,6 +679,58 @@ async def refine_observation_mask_endpoint(
         return _error(exc)
 
 
+class RecordZeroAreaRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    intent: Literal["record_zero", "draw_outline"] = "record_zero"
+    expected_measurement_id: Optional[str] = None
+    amends_assessment_id: Optional[str] = None
+
+
+@router.post("/observations/{observation_id}/record-zero-area")
+def record_zero_area_endpoint(
+    observation_id: str,
+    body: RecordZeroAreaRequest = Body(default_factory=RecordZeroAreaRequest),
+    x_reviewer_token: Optional[str] = Header(default=None),
+):
+    """No visible open wound: propose 0 cm² for clinician verification (never an approval)."""
+    try:
+        actor = _resolve_actor_subject(x_reviewer_token, None)
+        obs = care_service.record_zero_area(
+            actor_subject=actor,
+            observation_id=observation_id,
+            intent=body.intent,
+            expected_measurement_id=body.expected_measurement_id,
+            amends_assessment_id=body.amends_assessment_id,
+            pipeline=pipeline,
+        )
+        return _json(obs, 200)
+    except Exception as exc:
+        return _error(exc)
+
+
+class WoundStatusRequest(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+    status: Literal["HEALED", "ACTIVE"]
+    reason: str = Field(min_length=1, max_length=512)
+
+
+@router.post("/patients/{patient_id}/wounds/{wound_id}/status")
+async def set_wound_status_endpoint(
+    patient_id: str,
+    wound_id: str,
+    body: WoundStatusRequest,
+    x_reviewer_token: Optional[str] = Header(default=None),
+):
+    """Clinician confirmation that a wound has healed (after a verified 0 cm²), or reopening it."""
+    try:
+        actor = _resolve_actor_subject(x_reviewer_token, None)
+        wound = care_service.set_wound_status(actor_subject=actor, patient_id=patient_id, wound_id=wound_id,
+                                              status=body.status, reason=body.reason)
+        return _json(wound, 200)
+    except Exception as exc:
+        return _error(exc)
+
+
 @router.post("/observations/{observation_id}/measure-preview")
 async def measure_preview_endpoint(
     observation_id: str,

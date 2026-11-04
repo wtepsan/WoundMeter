@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Eye, History, Plus, TrendingDown, TrendingUp } from "lucide-react";
+import { CircleCheck, Eye, History, Plus, RotateCcw, TrendingDown, TrendingUp } from "lucide-react";
 
 import type { Navigate } from "@/components/app/AppShell";
 import { useCareData } from "@/components/app/CareDataProvider";
@@ -21,6 +21,7 @@ import { Badge, Loading, Notice } from "@/components/ui/Feedback";
 import { PrivateImage, pickDisplayImage } from "@/components/ui/PrivateImage";
 import { Disclosure } from "@/components/ui/Layout";
 import { can, isWardNurse, personName, type Account, type Portal } from "@/lib/accounts";
+import { CareApiError, setWoundStatus } from "@/lib/care-api";
 import { formatCm, formatDate, humanize, latestAreaChange, patientName, woundSiteLabel, woundTypeLabel } from "@/lib/care-format";
 import type { PatientCompleteRecord, WoundDetail } from "@/lib/care-types";
 
@@ -85,7 +86,37 @@ function WoundCard({ wound, selected, pending, portal, account, patientLabel, on
  * The wound's own actions: New measure (a new photo of this wound, never a new wound) and View history.
  * New measure is offered only to staff with capture permission, or a caregiver whose grant covers this wound.
  */
-function WoundActions({ wound, canMeasure, onMeasure }: { wound: WoundDetail; canMeasure: boolean; onMeasure: () => void }) {
+function WoundActions({ wound, canMeasure, onMeasure, canConfirmHealing, onChanged }: {
+  wound: WoundDetail; canMeasure: boolean; onMeasure: () => void;
+  /** A qualified clinician may mark the wound healed (after a verified 0 cm²) or reopen it. */
+  canConfirmHealing: boolean; onChanged: () => Promise<unknown>;
+}) {
+  const latest = wound.approved_timeline.at(-1);
+  const healable = canConfirmHealing && wound.status === "ACTIVE" && Boolean(latest?.zero_area);
+  const reopenable = canConfirmHealing && wound.status === "HEALED";
+  const [confirming, setConfirming] = useState<null | "HEALED" | "ACTIVE">(null);
+  const [reason, setReason] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const open = (status: "HEALED" | "ACTIVE") => {
+    setConfirming(status);
+    setError(null);
+    setReason(status === "HEALED" && latest ? `Wound closed: clinician-verified 0 cm² (no visible open wound) on ${formatDate(latest.capture_datetime_utc)}.` : "");
+  };
+  const confirm = async () => {
+    if (!confirming) return;
+    setBusy(true);
+    setError(null);
+    try {
+      await setWoundStatus(wound.patient_id, wound.wound_id, confirming, reason.trim());
+      await onChanged();
+      setConfirming(null);
+    } catch (err) {
+      setError(err instanceof CareApiError || err instanceof Error ? err.message : "That didn’t work.");
+    } finally {
+      setBusy(false);
+    }
+  };
   const viewHistory = () => {
     const heading = document.getElementById(`visits-${wound.wound_id}`);
     heading?.scrollIntoView({ behavior: "smooth", block: "start" });
@@ -101,6 +132,37 @@ function WoundActions({ wound, canMeasure, onMeasure }: { wound: WoundDetail; ca
       <button type="button" className="button secondary" onClick={viewHistory}>
         <History aria-hidden="true" /> View history
       </button>
+      {healable && !confirming && (
+        <button type="button" className="button secondary" onClick={() => open("HEALED")}>
+          <CircleCheck aria-hidden="true" /> Mark wound healed
+        </button>
+      )}
+      {reopenable && !confirming && (
+        <button type="button" className="button secondary" onClick={() => open("ACTIVE")}>
+          <RotateCcw aria-hidden="true" /> Reopen wound
+        </button>
+      )}
+      {confirming && (
+        <div className="panel inline-panel" role="group" aria-labelledby={`status-${wound.wound_id}`}>
+          <h3 id={`status-${wound.wound_id}`} className="section-title">{confirming === "HEALED" ? "Mark this wound healed?" : "Reopen this wound?"}</h3>
+          <p className="muted-text">
+            {confirming === "HEALED"
+              ? "Your confirmation that the wound has closed, based on the latest verified 0 cm². The record and its history stay; new photos can still be taken, and a verified open wound later reopens it."
+              : "Returns the wound to active care. Its history, including the healed confirmation, is kept."}
+          </p>
+          <div className="field">
+            <label htmlFor={`status-reason-${wound.wound_id}`}>Reason</label>
+            <input id={`status-reason-${wound.wound_id}`} maxLength={512} value={reason} onChange={(e) => setReason(e.target.value)} />
+          </div>
+          {error && <p className="danger-text" role="alert">{error}</p>}
+          <div className="button-row">
+            <button type="button" className="button primary" disabled={busy || !reason.trim()} onClick={() => void confirm()}>
+              {busy ? "Saving…" : confirming === "HEALED" ? "Confirm healed" : "Reopen wound"}
+            </button>
+            <button type="button" className="button ghost" disabled={busy} onClick={() => setConfirming(null)}>Cancel</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -143,7 +205,8 @@ export function PatientDashboard({ patientId, initialWoundId, account, portal, n
   const observationKey = record.wounds.map((w) => `${w.wound_id}:${w.observations.map((o) => o.observation_id).join(":")}`).join("|");
   const pendingFor = (w: WoundDetail) => w.observations.filter((o) =>
     o.review_state === "AWAITING_CLINICAL_REVIEW" && (clinical || o.uploading_user_subject === account.subject)).length;
-  const canMeasure = (w: WoundDetail) => w.status === "ACTIVE"
+  // A healed wound can still be photographed (a follow-up check); a verified open wound reopens it.
+  const canMeasure = (w: WoundDetail) => (w.status === "ACTIVE" || w.status === "HEALED")
     && (clinical ? can(account, "CAPTURE") : portal === "caregiver" && Boolean(w.allowed_actions?.includes("UPLOAD_HOME_PHOTO")));
   const canAddWound = clinical && can(account, "REGISTER_WOUND");
   const selectWound = (id: string) => navigate({ name: "patient", patientId, woundId: id });
@@ -159,6 +222,8 @@ export function PatientDashboard({ patientId, initialWoundId, account, portal, n
   );
   const woundActions = wound && (
     <WoundActions wound={wound} canMeasure={canMeasure(wound)}
+      canConfirmHealing={clinical && can(account, "ASSESS") && can(account, "SIGN_OFF") && Boolean(account.qualification_verified)}
+      onChanged={() => Promise.all([refreshPatient(patientId), refreshQueue()])}
       onMeasure={() => navigate({ name: "new-observation", patientId, woundId: wound.wound_id })} />
   );
   const viewing = <p className="eyebrow viewing-label"><Eye aria-hidden="true" /> Currently viewing</p>;

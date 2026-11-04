@@ -1,6 +1,9 @@
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, Camera, CheckCircle2, Frame, Ruler, Upload } from "lucide-react";
+import { ArrowLeft, Camera, CheckCircle2, FlaskConical, Frame, Ruler, Upload } from "lucide-react";
+
+import { SamplePhotos } from "@/components/demo/SamplePhotos";
+import { DEMO_MODE } from "@/lib/accounts";
 
 export const metadata = { title: "Photo guide" };
 
@@ -69,6 +72,21 @@ export default function InstructionPage() {
             );
           })}
         </ol>
+        <section className="panel" aria-labelledby="samples-title">
+          <h2 id="samples-title" className="section-title">Try it with a sample photo</h2>
+          <p className="muted-text">
+            No printed ruler yet? These three photos already include the WoundMeter ruler and show one wound healing over time:
+            A (open), B (small) and C (healed, which WoundMeter reports as &ldquo;No visible wound detected&rdquo;). Download one and upload it
+            {DEMO_MODE ? " in the demo, or use it straight from the demo page." : " where you measure a wound."}
+          </p>
+          <SamplePhotos />
+          {DEMO_MODE && (
+            <div className="button-row">
+              <Link href="/demo" className="button primary"><FlaskConical aria-hidden="true" /> Open the demo (no sign-in)</Link>
+              <Link href="/" className="button secondary">Sign in with a demo account</Link>
+            </div>
+          )}
+        </section>
       </div>
     </main>
   );

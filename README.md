@@ -64,9 +64,21 @@ All three public routes are live and accessible over HTTPS:
 
 | Experience | Live URL | What You Will Find |
 | :--- | :--- | :--- |
-| **Live Application** | **https://woundmeter.wtepsan.dev** | The full multi-role platform in hackathon demo mode, featuring **one-click sign-in** for four isolated demo personas: **Administrator** (`admin.demo`), **Physician** (`clinician.somchai`), **Ward Nurse** (`nurse.ward01`), and **Family Caregiver** (`caregiver.suda`). |
-| **User Instructions** | **https://woundmeter.wtepsan.dev/instruction** | A 5-step illustrated **Photo Guide** showing how to place the physical AprilTag L-ruler, frame all four fiducial tags (`0`, `1`, `10`, and the ruler-length ID tag), avoid glare/cropping, and submit for clinician review. |
-| **Interactive Demo** | **https://woundmeter.wtepsan.dev/demo** | A **zero-sign-in, stateless single-photo clinical workbench**. Upload or capture a ruler photo to run the real AprilTag + colour calibration + **Meta SAM 3.1** + **YOLOv8-seg** + **Muse Spark 1.3** pipeline, edit boundaries live, and test the 4-attestation clinical sign-off entirely in browser memory without writing to the clinical database. |
+| **Live Application** | **https://woundmeter.wtepsan.dev** | The full multi-role platform in hackathon demo mode, featuring **one-click sign-in** for four isolated demo personas: **Administrator** (`admin.demo`), **Physician** (`clinician.somchai`), **Ward Nurse** (`nurse.ward01`), and **Family Caregiver** (`caregiver.suda`). The sign-in page links to the Photo Guide, the demo and the [sample photos](#sample-photos-for-testing). One fictional patient, **Malee Sukjai (`P-DEMO-HEAL`)**, is shared with every demo role and shows one wound over three visits. |
+| **User Instructions** | **https://woundmeter.wtepsan.dev/instruction** | A 5-step illustrated **Photo Guide** showing how to place the physical AprilTag L-ruler, frame all four fiducial tags (`0`, `1`, `10`, and the ruler-length ID tag), avoid glare/cropping, and submit for clinician review, followed by the [sample photos](#sample-photos-for-testing) to download and a link to the demo. |
+| **Interactive Demo** | **https://woundmeter.wtepsan.dev/demo** | A **zero-sign-in, stateless single-photo clinical workbench**. Upload or capture a ruler photo to run the real AprilTag + colour calibration + **Meta SAM 3.1** + **YOLOv8-seg** + **Muse Spark 1.3** pipeline, edit boundaries live, and test the 4-attestation clinical sign-off entirely in browser memory without writing to the clinical database. No ruler at hand? Press **Use this photo** on a [sample photo](#sample-photos-for-testing). |
+
+### Sample Photos for Testing
+
+Three ruler photos of one wound healing over time. Each already includes the WoundMeter AprilTag L-ruler, so it can be measured without a printed ruler. Use them on [`/demo`](https://woundmeter.wtepsan.dev/demo) (**Use this photo**), or download one and upload it with **New measure** after signing in.
+
+| A · Open wound (baseline) | B · Small wound (week 4) | C · Healed (week 8) |
+| :---: | :---: | :---: |
+| <img src="nextjs-woundmeter/public/samples/sample-a-open-wound.png" width="220" alt="Sample A: open wound with ruler"> | <img src="nextjs-woundmeter/public/samples/sample-b-small-wound.png" width="220" alt="Sample B: small wound with ruler"> | <img src="nextjs-woundmeter/public/samples/sample-c-healed.png" width="220" alt="Sample C: healed wound with ruler"> |
+| [Download](https://woundmeter.wtepsan.dev/samples/sample-a-open-wound.png) | [Download](https://woundmeter.wtepsan.dev/samples/sample-b-small-wound.png) | [Download](https://woundmeter.wtepsan.dev/samples/sample-c-healed.png) |
+| Large open wound; measured by Meta SAM 3.1 + YOLOv8-seg | Narrow open slit; SAM offers whole-wound and red-tissue outlines | No open wound: WoundMeter reports **No visible wound detected** and offers **Record 0 cm²** |
+
+*Images adapted from Jia et al. (2026), Figure 3, with the WoundMeter ruler added. Licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Source: [doi.org/10.3389/fmed.2026.1776438](https://doi.org/10.3389/fmed.2026.1776438). The same credit is shown wherever the app displays them.*
 
 ---
 
@@ -172,6 +184,7 @@ Only capabilities verified directly in the repository and live deployment are li
 - **Dual-Model Segmentation & Agreement Gating:** Runs **Meta SAM 3.1** and local **YOLOv8-seg** in `"compare"` mode, computing Dice coefficient, IoU, and dimensional differences to warn clinicians when models disagree.
 - **Interactive Polygon Boundary Editor:** HTML5 canvas workspace ([`PhotoWorkspace.tsx`](file:///home/ragserver/WoundMeter/nextjs-woundmeter/components/record/PhotoWorkspace.tsx)) supporting rectified, colour-corrected, and original views; ruler-axis and clinical Feret axis overlays; colour-coded provenance strokes (`#F97316` orange for AI-predicted, `#14B8A6` teal for human-corrected, `#22C55E` green for verified); and 350 ms debounced live server re-measurement.
 - **Four-Attestation Clinical Sign-Off:** Signing an observation requires explicit confirmation of four cryptographic-fingerprint-bound attestations ([`approval-attestations.ts`](file:///home/ragserver/WoundMeter/nextjs-woundmeter/lib/approval-attestations.ts)): photograph suitability, wound boundary verification, measurements/calibration review, and clinical assessment review. Modifying any underlying item automatically clears its attestation.
+- **No Visible Wound & Healed Wounds:** When no wound is found on a calibrated photo, WoundMeter shows **No visible wound detected** with **Record 0 cm²**, **Draw outline** (clinicians, for a wound the AI missed) and **Retake photo**. 0 cm² has no boundary, keeps the ruler calibration and photo integrity checks, and needs clinician verification (wound bed *Closed*, "no open wound confirmed" attestation) before it reaches the progression chart. Only a clinician can then **Mark wound healed**; a later verified open wound reopens it with history kept. Photos that cannot be calibrated are never offered 0 cm².
 - **Inpatient Nursing & Braden Scale Module:** Full inpatient ward board, admission/discharge tracking, shift handovers, nursing care activities, and validated 6-subscale **Braden Scale** pressure-injury risk scoring ($6–23$ points).
 - **Caregiver Safe-View & Escalation Workflow:** Family caregivers submit home photos and structured symptom updates, view clinician-approved care instructions, check off care tasks, and receive explicit non-emergency warnings (including Thailand's `1669` emergency number). Unapproved AI numbers and draft clinical notes are stripped server-side before reaching caregiver or patient sessions.
 - **Cryptographic Privacy & Auditability:** Patient identifiers (names, Thai Citizen IDs, contact details) are encrypted at rest with **AES-256-GCM** (`identity_protection.py`) using HMAC-SHA256 blind indexes for lookup; image files are verified by SHA-256 checksums on every read/write (`image_integrity.py`); and all state transitions append to a SHA-256 hash-chained `audit_events` table.
@@ -255,7 +268,7 @@ WOUNDMETER_DEMO_MODE=true
 WOUNDMETER_DEMO_KEEP_PHOTOS=false
 ```
 
-> **Note:** Local AprilTag calibration, colour calibration, YOLOv8-seg segmentation, and deterministic measurements work offline even with `META_AI_ENABLED=false`. Because `WOUNDMETER_DEMO_MODE` is passed as both a runtime variable and a Next.js Docker build argument, always run `docker compose up -d --build` after changing it. Never enable `WOUNDMETER_DEMO_MODE` on an installation storing real patient data.
+> **Note:** Local AprilTag calibration, colour calibration, YOLOv8-seg segmentation, and deterministic measurements work offline even with `META_AI_ENABLED=false`. Because `WOUNDMETER_DEMO_MODE` is passed as both a runtime variable and a Next.js Docker build argument, always run `docker compose up -d --build` after changing it. Never enable `WOUNDMETER_DEMO_MODE` on an installation storing real patient data. In demo mode the sign-in page links to `/instruction` and `/demo` and offers the [sample photos](#sample-photos-for-testing) (served from `nextjs-woundmeter/public/samples/`). A fresh installation starts with no patients; the shared demo patient on the live site was registered through the app.
 
 ### Step 3: Build, Start, and Verify the Stack
 
@@ -297,17 +310,19 @@ A hackathon judge can evaluate WoundMeter's core value proposition in **under th
 2. Open **https://woundmeter.wtepsan.dev/demo**. Notice the prominent **"Demo mode — do not enter real patient data"** banner and the zero-sign-in capture panel.
 
 ### Minute 2 — Run Calibrated AI Segmentation & Interactive Boundary Correction (`/demo`)
-1. **Upload or Capture a Ruler Photo:** Choose a wound photograph framed by an approved WoundMeter AprilTag L-ruler (or test the calibration diagnostics gate by uploading any standard photo without AprilTags to see the structured **Retake Required** diagnostic report showing which tag IDs `0, 1, 10` were missing).
+1. **Upload or Capture a Ruler Photo:** Press **Use this photo** on sample **A** or **B** (see [Sample Photos for Testing](#sample-photos-for-testing)), or choose your own wound photograph framed by an approved WoundMeter AprilTag L-ruler (or test the calibration diagnostics gate by uploading any standard photo without AprilTags to see the structured **Retake Required** diagnostic report showing which tag IDs `0, 1, 10` were missing).
 2. **Inspect the Calibrated Workspace:** When a valid ruler photo is measured, the record screen opens with:
    - **Rectified ($10\text{ px/mm}$), Colour-Corrected, and Original image tabs**.
    - **Deterministic dimensions:** Area ($\text{cm}^2$), perimeter ($\text{cm}$), ruler-axis length/width, and clinical Feret major/perpendicular axes.
    - **AI Candidate Outlines:** Compare **Meta SAM 3.1** (`sam-3.1`) and local **YOLOv8-seg** outlines and their Dice/IoU agreement.
 3. **Human-in-the-Loop Boundary Edit:** Click **Edit boundary**, drag polygon vertices on the canvas (watching the **live server re-measurement** update in ~350 ms), choose what the outline represents (*Whole wound* or *Red tissue only*), and click **Done editing**. Notice that the provenance badge changes from orange (**AI-proposed boundary**) to teal (**Adjusted boundary**) and any previous AI draft note is automatically marked **out of date (`stale`)**.
 
+4. **Healed Wound:** Use sample **C**. WoundMeter reports **No visible wound detected** instead of an error. Signed in with a demo account, **Record 0 cm²** sends it for clinician verification; after a verified 0 cm², the physician can **Mark wound healed**. A later verified open wound reopens it.
+
 ### Minute 3 — Review Muse Spark Assistance, Complete 4 Attestations & Explore Connected Care (`/` & `/demo`)
 1. **Muse Spark 1.3 Assistance:** In the **AI assistance** panel, inspect the provisional documentation draft written by `muse-spark-1.3`, or click **Generate AI observations** to request structured multimodal visual findings (with **Accept / Edit / Reject** controls) and test **Ask AI** inline wording revisions.
 2. **Four-Attestation Sign-Off:** Complete the clinical form (including the **Braden Scale** risk calculator), check all **four clinical attestations** (bound to the exact photo hash, measurement version, colour status, and assessment), and click **Approve & sign (demo)**.
-3. **Optional Multi-Role Check (`/`):** Visit **https://woundmeter.wtepsan.dev** and click **Physician · Dr. Somchai (demo)** or **Home caregiver · Suda (demo)** to inspect the multi-role hospital, ward-nursing, and family caregiver portals.
+3. **Optional Multi-Role Check (`/`):** Visit **https://woundmeter.wtepsan.dev** and click **Physician · Dr. Somchai (demo)**, **Nurse · Nurse Mali (demo)** or **Home caregiver · Suda (demo)**. Each sees the shared fictional patient **Malee Sukjai (`P-DEMO-HEAL`)**: the physician and nurse see the full record, the caregiver only clinician-approved visits.
 
 ---
 
@@ -363,4 +378,5 @@ Verified from repository configuration, source-code provenance, and deployment r
 - **Clinical, Nursing, and Caregiver Research Collaborators:** We thank the nursing and clinical wound-care specialists whose practical insights into hospital-to-home transitions, family caregiver challenges, and bedside documentation shaped the human-in-the-loop design of WoundMeter.
 - **Academic Collaboration Context (Edinburgh Napier University):** We acknowledge the broader academic research discussions and elderly-care collaboration context involving **Edinburgh Napier University** that helped motivate our focus on connected home care. *(Note: No source code, clinical data, or official institutional endorsement from Edinburgh Napier University is claimed in this repository.)*
 - **Meta & the Meta Global AI Developer Hackathon Organisers:** We thank **Meta** and the hackathon organising team for hosting the Meta Global AI Developer Hackathon (26 October–4 November 2026) and providing API access to **Meta SAM 3.1 (`sam-3.1`)**, **Meta Muse Spark 1.3 (`muse-spark-1.3`)**, and **Muse Voice Transcribe 1.0 (`muse-voice-transcribe-1.0`)**.
+- **Sample Images:** The three sample photos are adapted from Jia et al. (2026), Figure 3 ([doi.org/10.3389/fmed.2026.1776438](https://doi.org/10.3389/fmed.2026.1776438)), licensed under [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/).
 - **Open-Source Community & Clinical Standards:** Built with [Next.js](https://nextjs.org/), [React](https://react.dev/), [Tailwind CSS](https://tailwindcss.com/), [Lucide Icons](https://lucide.dev/), [FastAPI](https://fastapi.tiangolo.com/), [PostgreSQL](https://www.postgresql.org/), [OpenCV](https://opencv.org/) (`APRILTAG_36h11`), [PyTorch](https://pytorch.org/), and [Ultralytics YOLOv8](https://github.com/ultralytics/ultralytics), incorporating the clinical **Braden Scale** framework for predicting pressure sore risk.

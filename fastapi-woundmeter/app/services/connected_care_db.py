@@ -103,6 +103,9 @@ APPROVAL_ATTESTATIONS: Dict[str, str] = {
     "measurements_reviewed": "the measurements and calibration status have been reviewed",
     "assessment_reviewed": "the clinical assessment and findings have been reviewed",
 }
+# On a 0 cm² record there is no boundary: the same request field confirms that no open wound is visible,
+# and the signed record stores it under its own name.
+ZERO_AREA_ATTESTATION = "no_open_wound_confirmed"
 
 
 class AttestationRequiredError(ValueError):
@@ -198,6 +201,25 @@ from app.services.record_workflow import RecordWorkflow, facts_raise_concern
 # never compared or substituted for each other.
 MEASUREMENT_REGIONS = ("whole_wound", "red_tissue")
 BOUNDARY_KIND_REGION = {"sam_refined_whole_wound": "whole_wound", "sam_concept": "red_tissue"}
+
+# "No visible open wound": a 0 cm² measurement version with no boundary and no mask. It keeps the photo's
+# ruler calibration, so a clinician can still draw an outline if a wound is visible.
+ZERO_AREA_AI = "ai_no_visible_wound"  # the AI found no wound on a calibrated photo (a proposal)
+ZERO_AREA_CLINICIAN = "clinician_recorded_zero"  # a clinician recorded 0 cm² over an AI outline
+
+
+def is_zero_area(contract: Any) -> bool:
+    return isinstance(contract, dict) and bool(contract.get("zero_area"))
+
+
+def zero_area_contract(base: Dict[str, Any], *, basis: str, version: int) -> Dict[str, Any]:
+    """Geometry contract of a 0 cm² version: the calibration of `base`, no mask, no boundary, whole wound."""
+    gate = dict(base.get("quality_gate") or {})
+    gate.update(status="REVIEW_REQUIRED", blocking_reasons=[],
+                review_reasons=["No visible open wound recorded (0 cm²); clinician verification is required."])
+    return {**base, "zero_area": True, "zero_area_basis": basis, "measurement_region": "whole_wound",
+            "mask_sha256": None, "selected_component_id": None, "selection_required": False,
+            "measurement_lines": None, "measurement_version": version, "quality_gate": gate}
 
 
 def measurement_region_of(geometry: Any, was_human_corrected: Any) -> Optional[str]:
@@ -1885,6 +1907,18 @@ class ConnectedCareService(RecordWorkflow):
                     "UPDATE wound_observations SET provisional_measurement_id = ?, draft_measurement_id = ?, draft_status = ? WHERE observation_id = ?",
                     (prov_meas_id, prov_meas_id if ai_exp_json else None, "current" if ai_exp_json else "none", obs_id),
                 )
+            elif session.error_code == "no_wound_detected" and session.canonical_image and session.geometry.canonical_width_px:
+                # Calibrated photo, no wound found: keep the AI's "no visible open wound" proposal (0 cm², no
+                # boundary) with the calibration. The record stays a retake until someone records 0 cm² or
+                # draws an outline; a clinician must verify either before it counts.
+                contract = zero_area_contract(
+                    self._calibration_contract(session, colour.status), basis=ZERO_AREA_AI, version=1)
+                prov_meas_id = self._insert_zero_measurement(
+                    conn, observation_id=obs_id, patient_id=patient["patient_id"], wound_id=wound_id, version=1,
+                    stage="PROVISIONAL_AI", source_model=ZERO_AREA_AI, human=False, contract=contract,
+                    actor_subject=actor_subject, now=now)
+                conn.execute("UPDATE wound_observations SET provisional_measurement_id = ?, draft_status = 'none' WHERE observation_id = ?",
+                             (prov_meas_id, obs_id))
 
             # Record CaregiverReport if caregiver/patient observations were provided
             has_concern = bool(
@@ -2135,7 +2169,8 @@ class ConnectedCareService(RecordWorkflow):
                     obs["patient_id"],
                     obs["wound_id"],
                     next_v,
-                    f"{contract['model_source']}+human_corrected",
+                    "clinician_drawn_outline" if contract.get("model_source") in (ZERO_AREA_AI, ZERO_AREA_CLINICIAN)
+                    else f"{contract['model_source']}+human_corrected",
                     round(m_recalc.area_cm2, 4),
                     round(m_recalc.length_cm, 4),
                     round(m_recalc.width_cm, 4),
@@ -2151,6 +2186,8 @@ class ConnectedCareService(RecordWorkflow):
                 ),
             )
             gate = corrected_gate(contract.get("quality_gate", {}), new_mask, inner_bounds, obs["image_quality_status"])
+            # A drawn boundary replaces a "no visible open wound" version; it is a normal outline from now on.
+            contract = {k: v for k, v in contract.items() if k not in ("zero_area", "zero_area_basis")}
             contract = {**contract, "mask_sha256": mask_hash(new_mask), "measurement_version": next_v,
                         "selected_component_id": selected_candidate_id, "selection_required": False, "quality_gate": gate,
                         "measurement_region": region, "measurement_lines": measurement_lines(m_recalc)}
@@ -2241,6 +2278,223 @@ class ConnectedCareService(RecordWorkflow):
                 "lines": measurement_lines(m),
                 "saved": False,
             }
+
+    @staticmethod
+    def _calibration_contract(session: Any, colour_status: Optional[str]) -> Dict[str, Any]:
+        """The ruler calibration of a processed photo, in the shape of a measurement geometry contract."""
+        return {
+            "canonical_width_px": session.geometry.canonical_width_px,
+            "canonical_height_px": session.geometry.canonical_height_px,
+            "inner_bounds_px": session.geometry.inner_bounds_px,
+            "pixels_per_mm": session.ruler.pixels_per_mm,
+            "calibration_id": session.request_id,
+            "ruler": session.ruler.model_dump(),
+            "model_source": ZERO_AREA_AI,
+            "model_version": session.segmentation.model_version if session.segmentation else None,
+            "measurement_algorithm_version": None,
+            "quality_gate": session.quality_gate.model_dump(),
+            "candidates": [],
+            "sam_guidance": None,
+            "colour_status": colour_status,
+            "photo_coverage_px": session.geometry.photo_coverage_px,
+        }
+
+    @staticmethod
+    def _insert_zero_measurement(conn: db.Connection, *, observation_id: str, patient_id: str, wound_id: str,
+                                 version: int, stage: str, source_model: str, human: bool, contract: Dict[str, Any],
+                                 actor_subject: str, now: str, source_measurement_id: Optional[str] = None) -> str:
+        meas_id = f"MEAS-{uuid4().hex[:10].upper()}"
+        conn.execute(
+            """
+            INSERT INTO wound_measurements(
+                measurement_id, observation_id, patient_id, wound_id, version_number,
+                measurement_stage, source_model, was_human_corrected, area_cm2, length_cm,
+                width_cm, clinical_length_cm, clinical_width_cm, perimeter_cm,
+                length_method, width_method, pixels_per_mm, boundary_px_json,
+                created_by_subject, created_at_utc, source_measurement_id, geometry_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 0, 0, 0, 0, 0, 0, 'maximum_vertical_chord', 'maximum_horizontal_chord',
+                      ?, '[]', ?, ?, ?, ?)
+            """,
+            (meas_id, observation_id, patient_id, wound_id, version, stage, source_model, 1 if human else 0,
+             contract["pixels_per_mm"], actor_subject, now, source_measurement_id, json.dumps(contract)),
+        )
+        return meas_id
+
+    def record_zero_area(
+        self,
+        *,
+        actor_subject: str,
+        observation_id: str,
+        intent: str = "record_zero",
+        expected_measurement_id: Optional[str] = None,
+        amends_assessment_id: Optional[str] = None,
+        pipeline: Optional[MeasurementPipeline] = None,
+    ) -> Dict[str, Any]:
+        """Record "no visible open wound" (0 cm²) for clinician verification, or open a no-wound photo for drawing.
+
+        - A calibrated photo on which the AI found no wound (a retake): `record_zero` sends its 0 cm² proposal to
+          clinician review; a clinician's `draw_outline` opens it for review so a boundary can be drawn.
+        - A pending (or, with an amendment, signed) record with an AI outline: a clinician records 0 cm² as a new
+          version, e.g. when healed scar or new skin was outlined. Earlier versions are kept.
+        Nothing here approves anything, invents a boundary or relaxes photo integrity checks.
+        """
+        if intent not in {"record_zero", "draw_outline"}:
+            raise ValueError("Choose to record 0 cm² or to draw an outline.")
+        now = datetime.now(timezone.utc).isoformat()
+        with self._lock, self._connect() as conn:
+            conn.execute("SELECT pg_advisory_xact_lock(4456001)")
+            row = conn.execute("SELECT * FROM wound_observations WHERE observation_id = ?", (observation_id,)).fetchone()
+            if not row:
+                raise KeyError(f"Observation '{observation_id}' not found.")
+            obs = dict(row)
+            user = self.get_user_record(conn, actor_subject)
+            clinical = user["role"] in CLINICAL_ROLES
+            no_wound_retake = (obs["review_state"] == "RETAKE_REQUESTED" and obs["image_quality_status"] == "no_wound_detected"
+                               and not obs["reviewing_clinician_subject"] and not obs["final_approved_measurement_id"])
+            if no_wound_retake and intent == "record_zero" and not clinical:
+                # The person who took the photo may propose 0 cm²; a clinician still has to verify it.
+                self.authorize_patient_access(conn, actor_subject, obs["patient_id"], wound_id=obs["wound_id"],
+                                              required_permission="UPLOAD_HOME_PHOTO")
+                if obs["uploading_user_subject"] != actor_subject:
+                    raise AccessDeniedError("RECORD_EDIT_DENIED", "Only the person who took this photo can record it as 0 cm².")
+            else:
+                self.authorize_patient_access(conn, actor_subject, obs["patient_id"], wound_id=obs["wound_id"],
+                                              require_clinical_role=True, clinical_permission="ASSESS")
+            self.require_active_record(conn, "observation", observation_id)
+            current_id = obs["human_corrected_measurement_id"] or obs["provisional_measurement_id"]
+            current = conn.execute("SELECT * FROM wound_measurements WHERE measurement_id = ?", (current_id,)).fetchone() if current_id else None
+            current = dict(current) if current else None
+            if expected_measurement_id is not None and current and expected_measurement_id != current["measurement_id"]:
+                raise ClinicalConflictError("Measurement changed. Reload before recording 0 cm².")
+
+            if no_wound_retake:
+                if current is None:
+                    # Photos taken before this feature kept no proposal: recompute the calibration from the stored
+                    # original (ruler only; the AI result is unchanged) and check it matches the stored rectified image.
+                    current = self._legacy_zero_proposal(conn, obs, actor_subject, now, pipeline)
+                elif not is_zero_area(json.loads(current.get("geometry_json") or "null")):
+                    raise ClinicalConflictError("This photo already has a measurement. Reload the record.")
+                conn.execute(
+                    """UPDATE wound_observations SET review_state = 'AWAITING_CLINICAL_REVIEW', quality_gate_status = 'REVIEW_REQUIRED'
+                       WHERE observation_id = ?""", (observation_id,))
+                summary = ("No visible open wound: 0 cm² proposed for clinician verification." if intent == "record_zero"
+                           else "No wound found by the AI; opened for the clinician to draw the boundary.")
+                conn.execute(
+                    """UPDATE review_requests SET status = 'AWAITING_CLINICAL_REVIEW', priority_level = 'YELLOW', concern_summary = ?
+                       WHERE observation_id = ?""", (summary, observation_id))
+                if not clinical:
+                    patient = conn.execute("SELECT primary_clinician_subject FROM patients WHERE patient_id = ?", (obs["patient_id"],)).fetchone()
+                    if patient and patient["primary_clinician_subject"]:
+                        self._create_notification(
+                            conn, recipient_subject=patient["primary_clinician_subject"], recipient_role="NURSE",
+                            patient_id=obs["patient_id"], wound_id=obs["wound_id"], observation_id=observation_id,
+                            notification_type="NEW_CAREGIVER_SUBMISSION",
+                            safe_preview_title="No Visible Wound Reported · Verification Needed",
+                            safe_preview_body=f"Observation {observation_id} was recorded as 0 cm² and needs clinician verification.",
+                            clinical_owner_subject=patient["primary_clinician_subject"])
+                action, detail = ("OBSERVATION_ZERO_AREA_PROPOSED" if intent == "record_zero" else "OBSERVATION_OPENED_FOR_OUTLINE",
+                                  {"measurement_id": current["measurement_id"], "basis": ZERO_AREA_AI})
+            else:
+                if intent != "record_zero":
+                    raise ValueError("Draw the boundary with Edit boundary on the record.")
+                if obs["review_state"] != "AWAITING_CLINICAL_REVIEW" or obs["final_approved_measurement_id"]:
+                    latest = conn.execute('SELECT assessment_id FROM clinical_assessments WHERE observation_id=? ORDER BY version_number DESC,sequence_id DESC LIMIT 1', (observation_id,)).fetchone()
+                    if obs['review_state'] != 'CLINICIAN_APPROVED' or not latest or amends_assessment_id != latest['assessment_id']:
+                        raise ClinicalConflictError("Only a pending record can be changed to 0 cm²; signed records require an amendment.")
+                    self.verify_observation_image_integrity(conn, observation_id, actor_subject=actor_subject)
+                if current is None:
+                    raise ValueError("This photo has no calibrated measurement. A new photo is needed.")
+                base = json.loads(current.get("geometry_json") or "null")
+                if not base or not base.get("calibration_id") or not base.get("pixels_per_mm"):
+                    raise ValueError("Stored calibration is unavailable for this photo. A new photo is needed; 0 cm² cannot be recorded without it.")
+                if is_zero_area(base) and current["measurement_stage"] != "FINAL_CLINICIAN_APPROVED" and obs["review_state"] == "AWAITING_CLINICAL_REVIEW":
+                    return self.get_observation_detail(actor_subject=actor_subject, observation_id=observation_id, conn_override=conn)
+                next_v = int(conn.execute("SELECT COALESCE(MAX(version_number), 1) + 1 AS v FROM wound_measurements WHERE observation_id = ?",
+                                          (observation_id,)).fetchone()["v"])
+                contract = zero_area_contract(base, basis=ZERO_AREA_CLINICIAN, version=next_v)
+                meas_id = self._insert_zero_measurement(
+                    conn, observation_id=observation_id, patient_id=obs["patient_id"], wound_id=obs["wound_id"], version=next_v,
+                    stage="HUMAN_CORRECTED", source_model=ZERO_AREA_CLINICIAN, human=True, contract=contract,
+                    actor_subject=actor_subject, now=now, source_measurement_id=current["measurement_id"])
+                conn.execute(
+                    """UPDATE wound_observations SET human_corrected_measurement_id = ?, ai_segmentation_provenance = 'human_corrected',
+                       quality_gate_status = 'REVIEW_REQUIRED', ai_explanation_json = NULL, draft_status = 'stale', draft_measurement_id = NULL
+                       WHERE observation_id = ?""", (meas_id, observation_id))
+                action, detail = "OBSERVATION_ZERO_AREA_RECORDED", {
+                    "measurement_id": meas_id, "version_number": next_v, "previous_area_cm2": current["area_cm2"],
+                    "basis": ZERO_AREA_CLINICIAN}
+            self._append_audit(conn, actor_subject=actor_subject, actor_role=user["role"], actor_org_id=user["org_id"],
+                               action=action, entity_type="OBSERVATION", entity_id=observation_id,
+                               patient_id=obs["patient_id"], wound_id=obs["wound_id"], detail=detail)
+            return self.get_observation_detail(actor_subject=actor_subject, observation_id=observation_id, conn_override=conn)
+
+    def _legacy_zero_proposal(self, conn: db.Connection, obs: Dict[str, Any], actor_subject: str, now: str,
+                              pipeline: Optional[MeasurementPipeline]) -> Dict[str, Any]:
+        if pipeline is None:
+            raise ValueError("The measurement service is unavailable. Try again later.")
+        images = {r["image_role"]: dict(r) for r in conn.execute(
+            "SELECT * FROM wound_images WHERE observation_id = ? ORDER BY sequence_id", (obs["observation_id"],)).fetchall()}
+        original, rectified = images.get("ORIGINAL_UPLOAD"), images.get("CANONICAL_RECTIFIED")
+        if not original or not rectified:
+            raise ValueError("This photo has no stored calibration. Take a new photo.")
+        self.verify_observation_image_integrity(conn, obs["observation_id"], actor_subject=actor_subject)
+        raw = (self.private_storage_dir / original["storage_key"]).read_bytes()
+        try:
+            session = pipeline.process(raw, request_id=f"recalibrate-{obs['observation_id'].lower()}", segmentation_mode="yolo")
+        except ProcessingFailure as exc:
+            raise ValueError("The ruler could not be calibrated on the stored photo. Take a new photo.") from exc
+        if (session.geometry.canonical_width_px, session.geometry.canonical_height_px) != (rectified["width_px"], rectified["height_px"]):
+            raise ValueError("The recomputed calibration does not match the stored photo. Take a new photo.")
+        base = {**self._calibration_contract(session, None), "calibration_recomputed_from_original": True,
+                "calibration_recomputed_at_utc": now}
+        contract = zero_area_contract(base, basis=ZERO_AREA_AI, version=1)
+        meas_id = self._insert_zero_measurement(
+            conn, observation_id=obs["observation_id"], patient_id=obs["patient_id"], wound_id=obs["wound_id"], version=1,
+            stage="PROVISIONAL_AI", source_model=ZERO_AREA_AI, human=False, contract=contract,
+            actor_subject=actor_subject, now=now)
+        conn.execute("UPDATE wound_observations SET provisional_measurement_id = ?, draft_status = 'none' WHERE observation_id = ?",
+                     (meas_id, obs["observation_id"]))
+        return dict(conn.execute("SELECT * FROM wound_measurements WHERE measurement_id = ?", (meas_id,)).fetchone())
+
+    def set_wound_status(self, *, actor_subject: str, patient_id: str, wound_id: str, status: str, reason: str) -> Dict[str, Any]:
+        """Mark a wound healed (clinician-confirmed, after a verified 0 cm² measurement) or reopen it."""
+        if status not in {"HEALED", "ACTIVE"}:
+            raise ValueError("Status must be HEALED or ACTIVE.")
+        if not isinstance(reason, str) or not reason.strip() or len(reason) > 512:
+            raise ValueError("A concise reason is required.")
+        now = datetime.now(timezone.utc).isoformat()
+        with self._lock, self._connect() as conn:
+            conn.execute("SELECT pg_advisory_xact_lock(4456001)")
+            user, patient = self.authorize_patient_access(conn, actor_subject, patient_id, wound_id=wound_id,
+                                                          require_clinical_role=True, require_signoff_qualification=True,
+                                                          clinical_permission="ASSESS")
+            wound = self._resolve_wound(conn, patient["patient_id"], wound_id)
+            self.require_active_record(conn, "wound", wound["wound_id"])
+            if status == "HEALED":
+                if wound["status"] != "ACTIVE":
+                    raise ClinicalConflictError("Only an active wound can be marked healed. Reload the record.")
+                latest = conn.execute(
+                    """SELECT m.area_cm2, m.geometry_json, o.observation_id FROM wound_observations o
+                       JOIN wound_measurements m ON m.measurement_id = o.final_approved_measurement_id
+                       WHERE o.wound_id = ? AND o.review_state = 'CLINICIAN_APPROVED' AND NOT EXISTS (
+                           SELECT 1 FROM record_deletions d WHERE d.record_type = 'observation'
+                           AND d.record_id = o.observation_id AND d.restored_at_utc IS NULL)
+                       ORDER BY o.capture_datetime_utc DESC LIMIT 1""", (wound["wound_id"],)).fetchone()
+                if not latest or float(latest["area_cm2"]) != 0 or not is_zero_area(json.loads(latest["geometry_json"] or "null")):
+                    raise ValueError("A wound can be marked healed only when its latest verified measurement is 0 cm² (no visible open wound).")
+                conn.execute("UPDATE wounds SET status = 'HEALED', healed_at_utc = ?, healed_by_subject = ?, updated_at_utc = ? WHERE wound_id = ?",
+                             (now, actor_subject, now, wound["wound_id"]))
+                action, detail = "WOUND_MARKED_HEALED", {"reason": reason.strip(), "verified_observation_id": latest["observation_id"]}
+            else:
+                if wound["status"] != "HEALED":
+                    raise ClinicalConflictError("Only a healed wound can be reopened. Reload the record.")
+                conn.execute("UPDATE wounds SET status = 'ACTIVE', reopened_at_utc = ?, updated_at_utc = ? WHERE wound_id = ?",
+                             (now, now, wound["wound_id"]))
+                action, detail = "WOUND_REOPENED", {"reason": reason.strip()}
+            self._append_audit(conn, actor_subject=actor_subject, actor_role=user["role"], actor_org_id=user["org_id"],
+                               action=action, entity_type="WOUND", entity_id=wound["wound_id"],
+                               patient_id=patient["patient_id"], wound_id=wound["wound_id"], detail=detail)
+            return dict(conn.execute("SELECT * FROM wounds WHERE wound_id = ?", (wound["wound_id"],)).fetchone())
 
     @staticmethod
     def _reported_concern(conn: db.Connection, observation_id: str) -> bool:
@@ -2476,7 +2730,7 @@ class ConnectedCareService(RecordWorkflow):
             if missing:
                 raise ValueError("Explicit clinical inputs required: " + ", ".join(missing))
             allowed_findings = {
-                "wound_bed_appearance": {"GRANULATING", "EPITHELIALIZING", "SLOUGH_PRESENT", "NECROTIC_ESCHAR"},
+                "wound_bed_appearance": {"GRANULATING", "EPITHELIALIZING", "SLOUGH_PRESENT", "NECROTIC_ESCHAR", "CLOSED"},
                 "exudate_amount": {"NONE", "SCANT", "MODERATE", "HEAVY"},
                 "surrounding_skin": {"INTACT", "ERYTHEMA", "MACERATED"},
                 "wound_trend": {"IMPROVING", "STABLE", "WORSENING", "NEW_WOUND"},
@@ -2518,6 +2772,12 @@ class ConnectedCareService(RecordWorkflow):
             contract = json.loads(base_m.get("geometry_json") or "null")
             if contract and contract.get("selection_required"):
                 raise ValueError("Select one wound component or explicitly correct its boundary before approval.")
+            # 0 cm² (no visible open wound) is signed as a closed wound bed; a measured wound never is.
+            zero_area = is_zero_area(contract) and float(base_m["area_cm2"]) == 0
+            if zero_area and wound_bed_appearance != "CLOSED":
+                raise ValueError("For 0 cm² (no visible open wound), record the wound bed as Closed.")
+            if not zero_area and wound_bed_appearance == "CLOSED":
+                raise ValueError("A wound bed recorded as Closed needs a 0 cm² measurement. Record no visible open wound, or choose another wound bed.")
             if ai_draft_disposition in {"accepted", "edited"} and (
                     obs.get("draft_status") != "current" or obs.get("draft_measurement_id") != active_meas_id or not obs.get("ai_explanation_json")):
                 raise ValueError("AI draft is stale or unavailable for this measurement. Write a manual note instead.")
@@ -2613,7 +2873,8 @@ class ConnectedCareService(RecordWorkflow):
                 "UPDATE wound_measurements SET source_measurement_id = ?, geometry_json = ? WHERE measurement_id = ?",
                 (active_meas_id, json.dumps(final_contract) if final_contract else None, final_meas_id),
             )
-            confirmed = {key: True for key in APPROVAL_ATTESTATIONS}
+            confirmed = {(ZERO_AREA_ATTESTATION if zero_area and key == "boundary_verified" else key): True
+                         for key in APPROVAL_ATTESTATIONS}
             conn.execute(
                 """UPDATE clinical_assessments SET reviewed_measurement_id = ?,
                    reviewed_measurement_version = ?, reviewer_attested_at_utc = ?, attestations_json = ? WHERE assessment_id = ?""",
@@ -2631,6 +2892,20 @@ class ConnectedCareService(RecordWorkflow):
                     "UPDATE wounds SET wound_type = ?, pressure_injury_stage = ?, updated_at_utc = ? WHERE wound_id = ?",
                     (wound_type, pressure_injury_stage, now, obs["wound_id"]),
                 )
+            # A verified open wound on a healed wound's newest photo reopens it; its history is kept.
+            if not zero_area and wound_row["status"] == "HEALED":
+                newer = conn.execute(
+                    """SELECT 1 FROM wound_observations WHERE wound_id = ? AND review_state = 'CLINICIAN_APPROVED'
+                       AND observation_id <> ? AND capture_datetime_utc > ?""",
+                    (obs["wound_id"], observation_id, obs["capture_datetime_utc"])).fetchone()
+                if not newer:
+                    conn.execute("UPDATE wounds SET status = 'ACTIVE', reopened_at_utc = ?, updated_at_utc = ? WHERE wound_id = ?",
+                                 (now, now, obs["wound_id"]))
+                    self._append_audit(conn, actor_subject=actor_subject, actor_role=user["role"], actor_org_id=user["org_id"],
+                                       action="WOUND_REOPENED", entity_type="WOUND", entity_id=obs["wound_id"],
+                                       patient_id=obs["patient_id"], wound_id=obs["wound_id"],
+                                       detail={"reason": "A non-zero measurement was approved after the wound was marked healed.",
+                                               "observation_id": observation_id, "area_cm2": base_m["area_cm2"]})
 
             conn.execute(
                 """
@@ -3459,11 +3734,13 @@ class ConnectedCareService(RecordWorkflow):
                         if baseline_area is None:
                             baseline_area = area
                         delta_cm2 = round(area - prev_area, 4) if prev_area is not None else 0.0
+                        # No percentage from 0 cm²: a wound that reopens after a verified 0 is flagged instead.
                         delta_pct = (
                             round((delta_cm2 / prev_area) * 100.0, 2)
                             if (prev_area is not None and prev_area > 0)
-                            else 0.0
+                            else (None if prev_area == 0 else 0.0)
                         )
+                        reopened = prev_area == 0 and area > 0
                         prev_area = area
                         geometry_row = conn.execute(
                             "SELECT geometry_json FROM wound_measurements WHERE measurement_id = ?", (am["measurement_id"],)
@@ -3487,6 +3764,8 @@ class ConnectedCareService(RecordWorkflow):
                                 "was_human_corrected": bool(am["was_human_corrected"]),
                                 "delta_from_previous_cm2": delta_cm2,
                                 "delta_from_previous_pct": delta_pct,
+                                "zero_area": area == 0,
+                                "reopened": reopened,
                                 "quality_status": ob["quality_gate_status"],
                                 # Whole wound vs red tissue only; the summary never compares different regions.
                                 "measurement_region": measurement_region_of(

@@ -157,6 +157,8 @@ export function WoundHistory({ wound, patientId, account, portal, navigate }: {
             const corrected = Boolean(m?.was_human_corrected);
             const report = clinical ? reportLine(obs) : null;
             const concern = obs.caregiver_report?.concern_flag || obs.caregiver_report?.concern_reported;
+            const point = wound.approved_timeline.find((p) => p.observation_id === obs.observation_id);
+            const zeroPoint = Boolean(point?.zero_area);
             const body = (
               <>
                 <PrivateImage image={pickDisplayImage(obs.images)} alt={`Wound photo from ${formatDate(obs.capture_datetime_utc)}`} className="visit-thumb" />
@@ -164,7 +166,8 @@ export function WoundHistory({ wound, patientId, account, portal, navigate }: {
                   <span className="visit-title">
                     {formatDateTime(obs.capture_datetime_utc)}
                     {isApproved && m && <strong> · {formatCm(m.area_cm2)} cm²</strong>}
-                    {isApproved && m && <span className="visit-dims"> {formatCm(m.length_cm)} × {formatCm(m.width_cm)} cm · {regionLabel(approvedRegion(wound, obs.observation_id)).replace("Wound boundary · ", "")}</span>}
+                    {isApproved && m && zeroPoint && <span className="visit-dims"> No visible open wound</span>}
+                    {isApproved && m && !zeroPoint && <span className="visit-dims"> {formatCm(m.length_cm)} × {formatCm(m.width_cm)} cm · {regionLabel(approvedRegion(wound, obs.observation_id)).replace("Wound boundary · ", "")}</span>}
                   </span>
                   <span className="visit-sub">
                     {locationLabel(obs.capture_location_category)} · {own ? "you" : personName(obs.uploading_user_subject)}
@@ -178,7 +181,8 @@ export function WoundHistory({ wound, patientId, account, portal, navigate }: {
                   {!clinical && own && !isApproved && <Badge tone="info">Your submission</Badge>}
                   {concern ? <Badge tone="danger">Concern</Badge> : null}
                   {obs.correction_of && <Badge tone="info">Photo correction</Badge>}
-                  {corrected && <Badge tone="neutral">Boundary corrected</Badge>}
+                  {corrected && !zeroPoint && <Badge tone="neutral">Boundary corrected</Badge>}
+                  {point?.reopened && <Badge tone="warning">Reopened</Badge>}
                   {revised && <Badge tone="neutral">Record amended</Badge>}
                   {synthetic && <Badge tone="neutral">{synthetic}</Badge>}
                   <Badge tone={status.tone}>{status.label}</Badge>

@@ -14,6 +14,7 @@ import {
   formatCm,
   formatDateTime,
   inferenceSourceLabel,
+  isZeroArea,
   measurementRegion,
   modelLabel,
   parseBoundary,
@@ -45,7 +46,7 @@ function labelled(lines: Pick<MeasurementLines, "length_line_px" | "width_line_p
  * horizontal runs of the saved outline, the same rule the server measures with.
  */
 export function sizeLinesFor(m: MeasurementVersion | null | undefined) {
-  if (!m?.geometry || calibrationStatus(m).state === "unavailable") return null;
+  if (!m?.geometry || calibrationStatus(m).state === "unavailable" || isZeroArea(m)) return null;
   const lines = m.geometry.measurement_lines ?? axisChords(parseBoundary(m));
   return lines ? labelled(lines, m.length_cm, m.width_cm) : null;
 }
@@ -62,6 +63,8 @@ function measurementState(working: MeasurementVersion | null, approved: boolean,
     if (preview.state === "loading") return { label: "Recalculating…", tone: "neutral" };
     return { label: "Unsaved edit · not verified", tone: "warning" };
   }
+  if (isZeroArea(working)) return approved ? { label: "No visible open wound · verified", tone: "success" }
+    : { label: "No visible open wound · not verified", tone: "warning" };
   if (approved) return { label: "Clinician verified", tone: "success" };
   if (working?.measurement_stage === "HUMAN_CORRECTED") return { label: "Adjusted · awaiting verification", tone: "warning" };
   return { label: "AI proposal · not verified", tone: "warning" };
@@ -299,6 +302,11 @@ export function PhotoPanel({
             </div>
           ))}
         </dl>
+        {isZeroArea(working) && !pending && (
+          <p className="fine-print">
+            0 cm²: no visible open wound, so there is no boundary.{editable && physical ? " If a wound is visible, use Edit boundary to draw its outline." : ""}
+          </p>
+        )}
         {pending && preview.state === "invalid" && (choosing
           ? <p className="fine-print">Live figures aren&apos;t available for this AI outline. Done editing saves it from the AI&apos;s own mask and measures it on the server.</p>
           : <p className="danger-text" role="alert">{preview.message} Undo the last change or adjust the outline.</p>)}

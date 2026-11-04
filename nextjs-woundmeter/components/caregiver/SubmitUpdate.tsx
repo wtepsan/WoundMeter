@@ -14,7 +14,8 @@ import { useImagePreview } from "@/hooks/useImagePreview";
 import { useUnsavedGuard } from "@/hooks/useUnsavedGuard";
 import { DEMO_SAMPLE_DATA } from "@/lib/accounts";
 import { fileToBase64, submitObservation, type ObservationSubmission } from "@/lib/care-api";
-import { formatDateTime, retakeReason, reviewStateLabel, woundSiteLabel } from "@/lib/care-format";
+import { NoVisibleWound } from "@/components/record/NoVisibleWound";
+import { formatDateTime, noVisibleWound, retakeReason, reviewStateLabel, woundSiteLabel } from "@/lib/care-format";
 import type { ObservationRecord } from "@/lib/care-types";
 import { validateImage } from "@/lib/image-validation";
 
@@ -86,7 +87,7 @@ export function SubmitUpdate({
   }
   if (!record) return <Loading />;
 
-  const wounds = record.wounds.filter((w) => w.status === "ACTIVE" && w.allowed_actions?.includes("UPLOAD_HOME_PHOTO"));
+  const wounds = record.wounds.filter((w) => (w.status === "ACTIVE" || w.status === "HEALED") && w.allowed_actions?.includes("UPLOAD_HOME_PHOTO"));
   const wound = wounds.find((w) => w.wound_id === woundId) ?? (wounds.length === 1 ? wounds[0] : null);
   const name = record.patient.display_name;
 
@@ -140,6 +141,27 @@ export function SubmitUpdate({
       setSubmitting(false);
     }
   };
+
+  if (result && noVisibleWound(result)) {
+    return (
+      <div className="page narrow-page">
+        {crumbs}
+        <NoVisibleWound obs={result} canRecord canDraw={false} onRetake={resetPhoto}
+          onDone={async (updated) => {
+            setResult(updated);
+            await refreshPatient(pid);
+            navigate({ name: "review", patientId: pid, observationId: updated.observation_id });
+          }} />
+        <p className="fine-print">Recording 0 cm² sends it to your care team, who confirm it before it appears in the wound history.
+          Your answers have been kept if you retake the photo.</p>
+        <div className="button-row">
+          <button type="button" className="button secondary" onClick={() => navigate({ name: "patient", patientId: pid, woundId: wound?.wound_id })}>
+            Back to {name}
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   if (result) {
     const accepted = result.review_state !== "RETAKE_REQUESTED";

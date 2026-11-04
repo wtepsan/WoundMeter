@@ -10,6 +10,9 @@ export const APPROVAL_ATTESTATIONS = [
   { key: "assessment_reviewed", label: "I have reviewed the clinical assessment and findings.", item: "clinical assessment and findings" },
 ] as const;
 
+/** On a 0 cm² record there is no boundary: the boundary confirmation becomes this (same request field). */
+export const ZERO_AREA_ATTESTATION_LABEL = "I confirm no open wound is visible in the photograph (0 cm², no boundary).";
+
 export type AttestationKey = (typeof APPROVAL_ATTESTATIONS)[number]["key"];
 /** What each confirmation covers, as a comparable fingerprint. */
 export type AttestationSubjects = Record<AttestationKey, string>;

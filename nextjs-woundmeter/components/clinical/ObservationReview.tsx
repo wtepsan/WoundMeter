@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
-import { ArrowLeft, Ban, Camera, Lock, PencilLine, RotateCcw, X } from "lucide-react";
+import { ArrowLeft, Ban, Camera, CircleSlash, Lock, PencilLine, RotateCcw, X } from "lucide-react";
 
 import type { Navigate } from "@/components/app/AppShell";
 import { useCareData } from "@/components/app/CareDataProvider";
@@ -10,6 +10,7 @@ import { NewMeasurementPanel } from "@/components/clinical/NewMeasurementPanel";
 import { RecordActions, type MenuItem } from "@/components/clinical/RecordActions";
 import { RecordHistory } from "@/components/care/RecordHistory";
 import { AiAssistance } from "@/components/record/AiAssistance";
+import { NoVisibleWound, takeOutlineRequest } from "@/components/record/NoVisibleWound";
 import { PhotoPanel, type PreviewState } from "@/components/record/PhotoPanel";
 import { RecordDetails } from "@/components/record/RecordDetails";
 import { RecordForm } from "@/components/record/RecordForm";
@@ -19,14 +20,16 @@ import { PrivateImage, pickDisplayImage } from "@/components/ui/PrivateImage";
 import { can, personName, type Account } from "@/lib/accounts";
 import { attestationErrorMessage } from "@/lib/approval-attestations";
 import { samePolygon, type Point } from "@/lib/boundary-mask";
-import { CareApiError, previewMeasurement, refineObservationMask, reviewObservation, saveRecordDraft } from "@/lib/care-api";
+import { CareApiError, previewMeasurement, recordZeroArea, refineObservationMask, reviewObservation, saveRecordDraft } from "@/lib/care-api";
 import {
   REGION_LABEL,
   calibrationStatus,
   formatDate,
   formatDateTime,
   humanize,
+  isZeroArea,
   locationLabel,
+  noVisibleWound,
   measurementRegion,
   parseBoundary,
   patientName,
@@ -97,7 +100,7 @@ export function ObservationReview({ patientId, observationId, account, navigate 
   const [editing, setEditing] = useState(false);
   const [formEpoch, setFormEpoch] = useState(0);
   const [conflict, setConflict] = useState(false);
-  const [panel, setPanel] = useState<null | "photo" | "request_retake" | "reject">(null);
+  const [panel, setPanel] = useState<null | "photo" | "request_retake" | "reject" | "zero">(null);
   const [panelReason, setPanelReason] = useState("");
   const [photoCapture, setPhotoCapture] = useState(false);
   const [busy, setBusy] = useState(false);
@@ -124,6 +127,11 @@ export function ObservationReview({ patientId, observationId, account, navigate 
   const editable = authorised && (pendingReview || editing);
   const working = !obs ? null : editable ? obs.record_working_measurement ?? workingMeasurement(obs) : obs.approved_measurement ?? workingMeasurement(obs);
   const workingId = working?.measurement_id;
+  const zeroArea = isZeroArea(working);
+  // "Draw outline" from the capture page opens this record with boundary editing started (once).
+  useEffect(() => {
+    if (editable && takeOutlineRequest(observationId)) setBoundaryEditing(true);
+  }, [editable, observationId]);
 
   const onPending = useCallback((points: Point[] | null) => setPending(points), []);
   // A boundary edited but not yet saved with Done editing would be lost by leaving.
@@ -282,6 +290,9 @@ export function ObservationReview({ patientId, observationId, account, navigate 
     ] : []),
     ...((editable || (authorised && obs.review_state === "RETAKE_REQUESTED")) && (can(account, "CAPTURE") || !clinical)
       ? [{ label: "Correct the photo", icon: Camera, onSelect: () => { setPanel("photo"); setPanelReason(""); setPhotoCapture(false); } }] : []),
+    // Healed scar or new skin outlined by the AI: record no visible open wound (0 cm²) instead, as a new version.
+    ...(clinical && editable && working && !zeroArea && can(account, "ASSESS") && calibrationStatus(working).state !== "unavailable"
+      ? [{ label: "No visible open wound (0 cm²)", icon: CircleSlash, onSelect: () => { setPanel("zero"); setPanelReason(""); } }] : []),
     ...(editing ? [{ label: "Cancel revision", icon: X, onSelect: cancelRevision }] : []),
   ];
   const canRevise = authorised && !pendingReview && obs.review_state === "CLINICIAN_APPROVED" && !editing;
@@ -330,7 +341,14 @@ export function ObservationReview({ patientId, observationId, account, navigate 
         {obs.image_integrity_verified === false && <Notice tone="danger" title="Image integrity requires investigation">Stored evidence is preserved, but its integrity could not be verified. New signatures remain blocked.</Notice>}
         {obs.correction_of && <Notice tone="info">Photo correction: a new capture, not a routine follow-up. The original evidence is retained. <button type="button" className="link-button" onClick={() => navigate({ name: "review", patientId, observationId: obs.correction_of! })}>Open original record</button></Notice>}
         {obs.record_has_draft && !pendingReview && !editing && <Notice tone="info">An unsigned revision is saved for review. The signed version stays authoritative until a clinician approves it.</Notice>}
-        {obs.review_state === "RETAKE_REQUESTED" && <Notice tone="warning" title="Reviewer's request">{obs.review_notes}</Notice>}
+        {obs.review_state === "RETAKE_REQUESTED" && obs.review_notes && <Notice tone="warning" title="Reviewer's request">{obs.review_notes}</Notice>}
+        {noVisibleWound(obs) && (
+          <NoVisibleWound obs={obs} canRecord={clinical ? can(account, "ASSESS") : authorised} canDraw={clinical && can(account, "ASSESS")}
+            onDone={async (_updated, intent) => {
+              await Promise.all([refreshPatient(patientId), refreshQueue()]);
+              if (intent === "draw_outline") setBoundaryEditing(true);
+            }} />
+        )}
         {obs.review_state === "REJECTED" && <Notice tone="danger" title="Reason for rejection">{obs.review_notes}</Notice>}
         {signed && <Notice tone="success" title="Approved and signed">The signed version is in History. Further changes start a new revision.</Notice>}
         {editing && <Notice tone="info" title="Revising a signed record">The signed version stays unchanged. Your changes become a new version only after review and approval.</Notice>}
@@ -351,6 +369,23 @@ export function ObservationReview({ patientId, observationId, account, navigate 
               onClick={() => void run(() => reviewObservation(observationId, { decision: panel, review_notes: panelReason.trim(), clinical_interpretation: panelReason.trim(), final_documentation_text: panelReason.trim() }))
                 .then((failure) => { if (!failure) setPanel(null); })}>
               {panel === "reject" ? "Reject record" : "Request new photo"}
+            </button>
+            <button type="button" className="button ghost" onClick={() => setPanel(null)}>Cancel</button>
+          </div>
+        </section>
+      )}
+      {panel === "zero" && (
+        <section className="panel inline-panel" aria-labelledby="zero-title">
+          <h2 id="zero-title" className="section-title">Record no visible open wound (0 cm²)?</h2>
+          <p className="muted-text">
+            Use this when the photo shows no open wound, for example healed skin or a scar the AI outlined. It adds a new 0 cm² version
+            without a boundary; the AI outline and earlier versions are kept. The record still needs your verification and signature.
+          </p>
+          <div className="button-row">
+            <button type="button" className="button primary" disabled={busy}
+              onClick={() => void run(() => recordZeroArea(observationId, { intent: "record_zero", expected_measurement_id: workingId, ...amends }))
+                .then((failure) => { if (!failure) { setPanel(null); closeBoundaryEdit(); setBoundaryEpoch((v) => v + 1); } })}>
+              <CircleSlash aria-hidden="true" /> Record 0 cm²
             </button>
             <button type="button" className="button ghost" onClick={() => setPanel(null)}>Cancel</button>
           </div>

@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useId, useState } from "react";
-import { ChevronRight, ShieldCheck } from "lucide-react";
+import { BookOpen, ChevronRight, FlaskConical, ShieldCheck } from "lucide-react";
 
 import { BrandMark } from "@/components/app/BrandMark";
+import { SamplePhotos } from "@/components/demo/SamplePhotos";
 import { ConnectionStatus } from "@/components/pwa/ConnectionStatus";
 import { Notice } from "@/components/ui/Feedback";
 import { Disclosure } from "@/components/ui/Layout";
@@ -21,8 +23,13 @@ function DemoAccounts({ accounts, busy, onUse }: { accounts: DemoOption[]; busy:
       </h2>
       <p className="field-hint">
         Demo mode only. Choose a role to sign in without a password. The server still issues a normal session and enforces
-        every role permission and patient-access rule. The database starts with no patients.
+        every role permission and patient-access rule. The live demo includes one fictional patient, Malee Sukjai (P-DEMO-HEAL),
+        shared with every demo role, showing a wound healing over three visits.
       </p>
+      <div className="demo-links">
+        <Link href="/instruction" className="button secondary small"><BookOpen aria-hidden="true" /> Photo guide</Link>
+        <Link href="/demo" className="button secondary small"><FlaskConical aria-hidden="true" /> Try the demo (no sign-in)</Link>
+      </div>
       <ul className="account-list">
         {accounts.map((a) => {
           const name = DEMO_ACCOUNTS.find((d) => d.username === a.username)?.name ?? a.display_name;
@@ -51,6 +58,12 @@ function DemoAccounts({ accounts, busy, onUse }: { accounts: DemoOption[]; busy:
           );
         })}
       </ul>
+      <h3 className="section-title">Sample photos to test</h3>
+      <p className="field-hint">
+        Ruler photos of one wound over time: A (open), B (small) and C (healed: &ldquo;No visible wound detected&rdquo;). Download one and
+        upload it with New measure, or use it straight from the demo page.
+      </p>
+      <SamplePhotos />
     </section>
   );
 }

@@ -6,6 +6,7 @@ import type { Navigate } from "@/components/app/AppShell";
 import { useCareData } from "@/components/app/CareDataProvider";
 import { SubmitUpdate } from "@/components/caregiver/SubmitUpdate";
 import { NewMeasurementPanel } from "@/components/clinical/NewMeasurementPanel";
+import { requestOutlineDrawing } from "@/components/record/NoVisibleWound";
 import { Breadcrumbs, type Crumb } from "@/components/ui/Breadcrumbs";
 import { Loading, Notice } from "@/components/ui/Feedback";
 import { ChoiceGroup, PageHeader } from "@/components/ui/Layout";
@@ -42,7 +43,7 @@ export function NewObservation({
 
   if (!record) return <Loading label="Loading patient…" />;
   const clinical = portal === "clinical";
-  const wounds = record.wounds.filter((w) => w.status === "ACTIVE" && (clinical || w.allowed_actions?.includes("UPLOAD_HOME_PHOTO")));
+  const wounds = record.wounds.filter((w) => (w.status === "ACTIVE" || w.status === "HEALED") && (clinical || w.allowed_actions?.includes("UPLOAD_HOME_PHOTO")));
   const wound = wounds.find((w) => w.wound_id === initialWoundId) ?? null;
   const requested = initialWoundId ? record.wounds.find((w) => w.wound_id === initialWoundId) ?? null : null;
   const patientCrumb: Crumb = {
@@ -59,7 +60,7 @@ export function NewObservation({
         {initialWoundId && (
           <Notice tone="warning" title="This wound is unavailable">
             {!requested ? "The wound in this link was not found, or you do not have access to it."
-              : requested.status !== "ACTIVE" ? `${woundSiteLabel(requested)} (${requested.wound_code}) is no longer active, so it cannot be photographed.`
+              : requested.status !== "ACTIVE" && requested.status !== "HEALED" ? `${woundSiteLabel(requested)} (${requested.wound_code}) is no longer active, so it cannot be photographed.`
                 : `You do not have permission to photograph ${woundSiteLabel(requested)} (${requested.wound_code}).`}
             {" "}No other wound was chosen for you.
           </Notice>
@@ -114,9 +115,11 @@ export function NewObservation({
         patientId={patientId}
         wound={wound}
         role={account.role}
+        account={account}
         onCancel={() => navigate(woundView)}
-        onSubmitted={async (obs) => {
+        onSubmitted={async (obs, options) => {
           await refreshPatient(patientId);
+          if (options?.drawOutline) requestOutlineDrawing(obs.observation_id);
           navigate(can(account, "ASSESS") ? { name: "review", patientId, observationId: obs.observation_id } : woundView);
         }}
       />

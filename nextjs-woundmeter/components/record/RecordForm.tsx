@@ -12,6 +12,7 @@ import { useUnsavedGuard } from "@/hooks/useUnsavedGuard";
 import { can, roleLabel, type Account } from "@/lib/accounts";
 import {
   APPROVAL_ATTESTATIONS,
+  ZERO_AREA_ATTESTATION_LABEL,
   attestationPayload,
   attestationStates,
   attestationSubjects,
@@ -21,13 +22,14 @@ import {
 } from "@/lib/approval-attestations";
 import { BRADEN_SUBSCALES, type BradenSubscaleKey } from "@/lib/braden";
 import { CareApiError, type ReviewDecisionPayload } from "@/lib/care-api";
-import { formatCm, humanize, measurementStageLabel } from "@/lib/care-format";
+import { formatCm, humanize, isZeroArea, measurementStageLabel } from "@/lib/care-format";
 import type { MeasurementVersion, ObservationRecord, RecordFields, WoundDetail } from "@/lib/care-types";
 
 const OPTIONS = {
   woundType: ["PRESSURE_INJURY", "VENOUS_ULCER", "DIABETIC_FOOT_ULCER", "SURGICAL_WOUND", "TRAUMATIC_WOUND"],
   stage: ["NOT_APPLICABLE", "STAGE_1", "STAGE_2", "STAGE_3", "STAGE_4", "UNSTAGEABLE"],
-  woundBed: ["GRANULATING", "EPITHELIALIZING", "SLOUGH_PRESENT", "NECROTIC_ESCHAR"],
+  // CLOSED is only for a 0 cm² (no visible open wound) record, and is required for one.
+  woundBed: ["GRANULATING", "EPITHELIALIZING", "SLOUGH_PRESENT", "NECROTIC_ESCHAR", "CLOSED"],
   exudate: ["NONE", "SCANT", "MODERATE", "HEAVY"],
   skin: ["INTACT", "ERYTHEMA", "MACERATED"],
   trend: ["IMPROVING", "STABLE", "WORSENING"],
@@ -151,6 +153,7 @@ export function RecordForm({
   // Unsaved record entries: leaving the screen (menu, breadcrumb, Back, closing the page) asks first.
   useUnsavedGuard(dirty && !busy);
 
+  const zeroArea = isZeroArea(working);
   const subjects = attestationSubjects({
     observationId: obs.observation_id,
     photoSha256: obs.images.find((image) => image.image_role === "ORIGINAL_UPLOAD")?.sha256_hash,
@@ -193,7 +196,9 @@ export function RecordForm({
       { label: photoTodo ?? "Boundary chosen", target: "record-photo", done: !photoTodo },
     ] },
     { key: "observations", title: "Wound observations", anchor: "grp-observations", items: [
-      { label: "Wound bed", target: "f-bed", done: Boolean(woundBed) },
+      zeroArea
+        ? { label: "Wound bed: Closed (0 cm² recorded)", target: "f-bed", done: woundBed === "CLOSED" }
+        : { label: woundBed === "CLOSED" ? "Wound bed: Closed needs a 0 cm² record" : "Wound bed", target: "f-bed", done: Boolean(woundBed) && woundBed !== "CLOSED" },
       { label: "Exudate", target: "f-exudate", done: Boolean(exudate) },
       { label: "Surrounding skin", target: "f-skin", done: Boolean(skin) },
       { label: "Trend", target: "f-trend", done: Boolean(trend) },
@@ -445,7 +450,8 @@ export function RecordForm({
         <section className="record-section review-panel" aria-labelledby="review-title" id="grp-review">
           <h2 id="review-title" className="section-title">Review &amp; sign</h2>
           <p className="approval-summary">
-            You are approving <strong>{formatCm(working.area_cm2)} cm² · {formatCm(working.length_cm)} × {formatCm(working.width_cm)} cm · perimeter {formatCm(working.perimeter_cm)} cm</strong>
+            {zeroArea ? <>You are approving <strong>no visible open wound (0 cm², no boundary)</strong></>
+              : <>You are approving <strong>{formatCm(working.area_cm2)} cm² · {formatCm(working.length_cm)} × {formatCm(working.width_cm)} cm · perimeter {formatCm(working.perimeter_cm)} cm</strong></>}
             <span className="fine-print"> ({measurementStageLabel(working.measurement_stage)}, version {working.version_number})</span>
           </p>
           <fieldset className="clean-fieldset attestations" aria-describedby="attestations-hint">
@@ -454,7 +460,7 @@ export function RecordForm({
             {APPROVAL_ATTESTATIONS.map(({ key, label }) => (
               <label className={`checkbox-row${showMissing && attestationState[key] !== "confirmed" ? " is-missing" : ""}`} key={key}>
                 <input id={`attest-${key}`} type="checkbox" checked={attestationState[key] === "confirmed"} onChange={(e) => setConfirmation(key, e.target.checked)} />
-                <span>{label}{attestationState[key] === "changed" && <strong className="warning-text"> Changed since you confirmed it. Review it again.</strong>}</span>
+                <span>{zeroArea && key === "boundary_verified" ? ZERO_AREA_ATTESTATION_LABEL : label}{attestationState[key] === "changed" && <strong className="warning-text"> Changed since you confirmed it. Review it again.</strong>}</span>
               </label>
             ))}
           </fieldset>

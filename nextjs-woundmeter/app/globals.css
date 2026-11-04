@@ -2638,6 +2638,12 @@ body.photo-expanded-open .record-col-photo { z-index: 90; }
 .upload-selected > span { flex: 1 1 200px; min-width: 0; overflow-wrap: anywhere; }
 .demo-box { display: flex; flex-direction: column; gap: 8px; padding: 12px 14px; border: 1px dashed var(--line-strong); border-radius: 12px; background: var(--surface-2); color: var(--ink-2); font-size: 14px; }
 .demo-box p { margin: 0; }
+.sample-photos { display: flex; flex-direction: column; gap: 8px; }
+.sample-grid { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 180px), 1fr)); gap: 12px; }
+.sample-card { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); min-width: 0; }
+.sample-thumb { width: 100%; aspect-ratio: 1 / 1; object-fit: cover; border-radius: 8px; background: var(--surface-2); }
+.sample-label { display: flex; flex-direction: column; gap: 2px; font-size: 14px; }
+.demo-links { display: flex; flex-wrap: wrap; gap: 8px; }
 .demo-buttons { display: flex; flex-wrap: wrap; gap: 8px; }
 .demo-buttons .button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent-ink); }
 

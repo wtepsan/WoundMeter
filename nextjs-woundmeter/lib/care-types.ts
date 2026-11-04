@@ -32,6 +32,9 @@ export interface MeasurementGeometry {
   measurement_region?: MeasurementRegion | null;
   /** Where each measured dimension lies on the rectified image; absent on older measurements. */
   measurement_lines?: MeasurementLines | null;
+  /** "No visible open wound": 0 cm² with no boundary, keeping the photo's calibration. */
+  zero_area?: boolean;
+  zero_area_basis?: "ai_no_visible_wound" | "clinician_recorded_zero";
   /** AprilTag ruler detection behind the calibration. */
   ruler?: {
     detected_ids?: number[];
@@ -386,7 +389,12 @@ export interface ApprovedTimelinePoint {
   source_model: string;
   was_human_corrected: boolean;
   delta_from_previous_cm2: number;
-  delta_from_previous_pct: number;
+  /** Null when the previous verified area was 0 cm² (a percentage from zero is undefined). */
+  delta_from_previous_pct: number | null;
+  /** Clinician-verified "no visible open wound". */
+  zero_area?: boolean;
+  /** An open wound verified after a verified 0 cm². */
+  reopened?: boolean;
   /** What the approved boundary outlines; null when it was never recorded. */
   measurement_region?: MeasurementRegion | null;
 }
@@ -448,7 +456,11 @@ export interface WoundDetail {
   laterality: string;
   wound_type: string;
   pressure_injury_stage: string;
+  /** ACTIVE, or HEALED after explicit clinician confirmation (reopened to ACTIVE if it recurs). */
   status: string;
+  healed_at_utc?: string | null;
+  healed_by_subject?: string | null;
+  reopened_at_utc?: string | null;
   created_at_utc?: string;
   observations: ObservationRecord[];
   approved_timeline: ApprovedTimelinePoint[];

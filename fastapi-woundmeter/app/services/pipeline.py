@@ -44,6 +44,8 @@ from .sam_guidance import clean_boundary_mask, guidance_seeds, mask_dice
 SAM_LOCATOR_CONCEPTS = ("wound", "red wound")
 # Below this Dice with the refined boundary, the red-tissue boundary is offered as an alternative.
 SAM_ALTERNATIVE_DICE = 0.90
+# ...and only when it covers at least this fraction of the whole-wound area.
+SAM_ALTERNATIVE_MIN_FRACTION = 0.20
 # Outlines sharing at least this fraction of the smaller one's area describe the same wound.
 SAM_SAME_WOUND_OVERLAP = 0.5
 from .wound_measurement import calculate_measurements
@@ -93,12 +95,17 @@ def _red_tissue_alternative(wound, concept: List):
     touching = [c for c in concept if np.any((c.mask > 0) & (wound.mask > 0))]
     if not touching:
         return None
-    union = np.any(np.stack([c.mask > 0 for c in touching]), axis=0).astype(np.uint8)
+    # Red tissue lies inside the wound; clipping keeps a concept region that spreads over the
+    # surrounding scar or new skin from being offered as a larger "red tissue" outline.
+    union = (np.any(np.stack([c.mask > 0 for c in touching]), axis=0) & (wound.mask > 0)).astype(np.uint8)
     mask, _, _ = clean_boundary_mask(union)
     if not np.any(mask):
         return None
     mask = _largest_component(mask)
     if mask_dice(mask, wound.mask) >= SAM_ALTERNATIVE_DICE:
+        return None
+    # A sliver of the wound is not a usable "red tissue only" measurement, only another choice.
+    if np.count_nonzero(mask) < SAM_ALTERNATIVE_MIN_FRACTION * np.count_nonzero(wound.mask):
         return None
     best = max(touching, key=lambda c: c.confidence or 0.0)
     return replace(best, mask=mask)
@@ -612,7 +619,7 @@ class MeasurementPipeline:
                             "concept_prompt": None if (box_xyxy is not None or points) else prompt_used}
             else:
                 sam_candidates, elapsed_ms, prompt_used, guidance = self._guided_sam(
-                    inner_bgr, text_prompt, yolo_inner_masks or []
+                    inner_bgr, text_prompt, yolo_inner_masks
                 )
         except MetaApiError as exc:
             return (
@@ -754,10 +761,15 @@ class MeasurementPipeline:
         )
 
     @staticmethod
-    def _inner_masks(seg: Optional[SegmentationResponse], inner_bounds: Tuple[int, int, int, int]) -> List[np.ndarray]:
-        """YOLO candidate masks cut back to inner-crop pixels, to seed the guided SAM pass."""
-        if seg is None:
-            return []
+    def _inner_masks(
+        seg: Optional[SegmentationResponse], inner_bounds: Tuple[int, int, int, int]
+    ) -> Optional[List[np.ndarray]]:
+        """YOLO candidate masks cut back to inner-crop pixels, to seed the guided SAM pass.
+
+        None when YOLO did not complete; an empty list when it ran and found no wound.
+        """
+        if seg is None or seg.status not in ("success", "multiple_wounds_detected", "no_wound_detected"):
+            return None
         left, top, right, bottom = inner_bounds
         masks = []
         for candidate in seg.candidates:
@@ -769,7 +781,7 @@ class MeasurementPipeline:
                 masks.append((mask[top:bottom, left:right] > 0).astype(np.uint8))
         return masks
 
-    def _guided_sam(self, inner_bgr: np.ndarray, concept: str, yolo_inner_masks: List[np.ndarray]):
+    def _guided_sam(self, inner_bgr: np.ndarray, concept: str, yolo_inner_masks: Optional[List[np.ndarray]]):
         """Locate with concept prompts, refine each wound with box + interior point, in one time budget.
 
         Candidates: the refined whole-wound boundary, plus the concept boundary as an alternative
@@ -835,6 +847,8 @@ class MeasurementPipeline:
         # alternative for it. Without refinement the concept boundary is the wound outline.
         yolo_union = np.any(np.stack(yolo_inner_masks), axis=0) if yolo_inner_masks else None
         if refined:
+            # One box + point prompt describes one object; detached islands are not separate wounds.
+            refined = [replace(c, mask=_largest_component(c.mask)) for c in refined]
             wounds, wound_kind = _one_outline_per_wound(refined, yolo_union), "sam_refined_whole_wound"
         else:
             concept_outlines = [replace(c, mask=_largest_component(c.mask)) for c in concept]
